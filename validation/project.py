@@ -89,14 +89,18 @@ def run_validate_tg(job):
 
         pps = PPS(num_mols=job.sp.num_mols, lengths=job.sp.lengths)
 
-        system = Pack(molecules=pps, density=job.sp.density)
+        system = Pack(
+                molecules=pps,
+                density=job.sp.density,
+                force_field=OPLS_AA_PPS()
+        )
         system.apply_forcefield(
             r_cut=job.sp.r_cut,
             auto_scale=True,
             scale_charges=True,
             remove_hydrogens=job.sp.remove_hydrogens,
             remove_charges=job.sp.remove_charges,
-            force_field=OPLS_AA_PPS()
+            #force_field=OPLS_AA_PPS()
         )
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
@@ -128,10 +132,10 @@ def run_validate_tg(job):
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
 
         # Store more unit information in job doc
-        target_box = system.target_box / job.doc.ref_length 
+        target_box = system.target_box / job.doc.ref_length
         tau_kT = job.doc.dt * job.sp.tau_kT
         tau_pressure = job.doc.dt * job.sp.tau_pressure
-        job.doc.tau_kT = tau_kjob.doc.T
+        job.doc.tau_kT = tau_kT
         job.doc.tau_pressure = tau_pressure
         job.doc.real_time_step = sim.real_timestep.to("fs").value
         job.doc.real_time_units = "fs"
@@ -168,7 +172,8 @@ def run_validate_tg(job):
         # Expand back to target density
         sim.run_update_volume(
                 final_box_lengths=target_box,
-                n_steps=2e7,
+                #n_steps=2e7,
+                n_steps=1e6,
                 period=1000,
                 tau_kt=tau_kT,
                 kT=job.sp.kT
@@ -177,7 +182,8 @@ def run_validate_tg(job):
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
-        sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
+        #sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=2e6, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(

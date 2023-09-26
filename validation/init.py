@@ -21,9 +21,9 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [50]
-    parameters["lengths"] = [30]
-    parameters["density"] = [1.32]
+    parameters["num_mols"] = [20]
+    parameters["lengths"] = [5]
+    parameters["density"] = [0.05]
     parameters["remove_hydrogens"] = [
             True,
             #False
@@ -60,13 +60,20 @@ def get_parameters():
             3.0,
     ]
     parameters["pressure"] = [0.002332]
-    parameters["n_steps"] = [5e7]
+    parameters["n_steps"] = [
+            2e6,
+            #5e7
+    ]
     parameters["shrink_kT"] = [8.0]
-    parameters["shrink_n_steps"] = [5e7]
+    parameters["shrink_n_steps"] = [
+            2e6,
+            #5e7
+    ]
     parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
     parameters["tau_pressure"] = [10]
+    parameters["gamma"] = [0]
     parameters["gsd_write_freq"] = [1e5]
     parameters["log_write_freq"] = [1e4]
     parameters["sim_seed"] = [42]
@@ -81,7 +88,8 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("sim_done", False)
+        job.doc.setdefault("validate_tg_done", False)
+        job.doc.setdefault("validate_lattice_done", False)
         job.doc.setdefault("sample_done", False)
 
 
