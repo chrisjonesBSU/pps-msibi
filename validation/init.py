@@ -25,12 +25,12 @@ def get_parameters():
     parameters["lengths"] = [30]
     parameters["density"] = [1.32]
     parameters["remove_hydrogens"] = [
-            #True,
-            False
+            True,
+            #False
     ]
     parameters["remove_charges"] = [
-            #True,
-            False
+            True,
+            #False
     ]
     parameters["sigma_scale"] = [0.96]
     parameters["kT"] = [

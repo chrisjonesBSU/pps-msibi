@@ -91,13 +91,13 @@ def run_validate_tg(job):
 
         system = Pack(molecules=pps, density=job.sp.density)
         system.apply_forcefield(
-                    r_cut=job.sp.r_cut,
-                    auto_scale=True,
-                    scale_charges=True,
-                    remove_hydrogens=job.sp.remove_hydrogens,
-                    remove_charges=job.sp.remove_charges,
-                    force_field=OPLS_AA_PPS()
-                )
+            r_cut=job.sp.r_cut,
+            auto_scale=True,
+            scale_charges=True,
+            remove_hydrogens=job.sp.remove_hydrogens,
+            remove_charges=job.sp.remove_charges,
+            force_field=OPLS_AA_PPS()
+        )
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
         job.doc.ref_mass_units = "amu"
