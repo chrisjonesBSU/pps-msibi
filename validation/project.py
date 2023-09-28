@@ -150,30 +150,17 @@ def run_validate_tg(job):
 
         # Anneal to just below target density
         sim.run_update_volume(
-                final_box_lengths=target_box*0.90,
+                final_density=job.sp.density*1.15,
                 n_steps=job.sp.shrink_n_steps,
                 period=job.sp.shrink_period,
                 tau_kt=tau_kT,
-                kT=job.sp.kT
+                kT=shrink_kT_ramp
         )
-
-        # Run for a bit at lower density
-        #sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
-
-        # Compress
-        #sim.run_update_volume(
-        #        final_box_lengths=target_box*0.90,
-        #        n_steps=1e7,
-        #        period=1000,
-        #        tau_kt=tau_kT,
-        #        kT=job.sp.kT
-        #)
 
         # Expand back to target density
         sim.run_update_volume(
-                final_box_lengths=target_box,
-                #n_steps=2e7,
-                n_steps=1e6,
+                final_density=job.sp.density,
+                n_steps=5e6,
                 period=1000,
                 tau_kt=tau_kT,
                 kT=job.sp.kT
@@ -182,8 +169,7 @@ def run_validate_tg(job):
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
-        #sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
-        sim.run_NVT(n_steps=2e6, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(
