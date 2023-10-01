@@ -21,56 +21,56 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [30]
+    parameters["num_mols"] = [50]
     parameters["lengths"] = [15]
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
             True,
-            False
+            #False
     ]
     parameters["remove_charges"] = [
-            #True,
-            False
+            True,
+            #False
     ]
-    parameters["sigma_scale"] = [0.96]
+    parameters["sigma_scale"] = [0.955]
     parameters["kT"] = [
-            #0.7,
+            0.7,
             0.8,
-            #0.9,
+            0.9,
             1.0,
-            #1.1,
+            1.1,
             1.2,
-            #1.3,
+            1.3,
             1.4,
-            #1.5,
+            1.5,
             1.6,
-            #1.7,
+            1.7,
             1.8,
-            #1.9,
+            1.9,
             2.0,
-            #2.1,
+            2.1,
             2.2,
-            #2.3,
+            2.3,
             2.4,
-            #2.5,
+            2.5,
             2.6,
-            #2.7,
+            2.7,
             2.8,
-            #2.9,
+            2.9,
             3.0,
     ]
     parameters["pressure"] = [0.002332]
     parameters["n_steps"] = [
-            5e6
+            5e7
     ]
     parameters["shrink_kT"] = [7.0]
     parameters["shrink_n_steps"] = [
-            3e6
+            1e7
     ]
     parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
-    parameters["tau_pressure"] = [10]
+    parameters["tau_pressure"] = [800]
     parameters["gamma"] = [0]
     parameters["gsd_write_freq"] = [1e5]
     parameters["log_write_freq"] = [1e4]
