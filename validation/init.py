@@ -21,7 +21,7 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [60]
+    parameters["num_mols"] = [30]
     parameters["lengths"] = [15]
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
@@ -61,11 +61,11 @@ def get_parameters():
     ]
     parameters["pressure"] = [0.002332]
     parameters["n_steps"] = [
-            5e7
+            5e6
     ]
-    parameters["shrink_kT"] = [8.0]
+    parameters["shrink_kT"] = [7.0]
     parameters["shrink_n_steps"] = [
-            3e7
+            3e6
     ]
     parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [2.5]

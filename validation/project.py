@@ -90,9 +90,7 @@ def run_validate_tg(job):
         pps = PPS(num_mols=job.sp.num_mols, lengths=job.sp.lengths)
 
         system = Pack(
-                molecules=pps,
-                density=job.sp.density,
-                force_field=OPLS_AA_PPS()
+                molecules=pps, density=job.sp.density,
         )
         system.apply_forcefield(
             r_cut=job.sp.r_cut,
@@ -100,7 +98,7 @@ def run_validate_tg(job):
             scale_charges=True,
             remove_hydrogens=job.sp.remove_hydrogens,
             remove_charges=job.sp.remove_charges,
-            #force_field=OPLS_AA_PPS()
+            force_field=OPLS_AA_PPS()
         )
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
@@ -169,7 +167,7 @@ def run_validate_tg(job):
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
-        sim.run_NVT(n_steps=3e7, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=3e6, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(
