@@ -22,11 +22,11 @@ def get_parameters():
     ''''''
     parameters = OrderedDict()
     parameters["num_mols"] = [50]
-    parameters["lengths"] = [15]
+    parameters["lengths"] = [25]
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
-            True,
-            #False
+            #True,
+            False
     ]
     parameters["remove_charges"] = [
             True,
@@ -34,10 +34,10 @@ def get_parameters():
     ]
     parameters["sigma_scale"] = [0.955]
     parameters["kT"] = [
-            0.7,
-            0.8,
-            0.9,
-            1.0,
+            #0.7,
+            #0.8,
+            #0.9,
+            #1.0,
             1.1,
             1.2,
             1.3,
@@ -54,16 +54,16 @@ def get_parameters():
             2.4,
             2.5,
             2.6,
-            2.7,
-            2.8,
-            2.9,
-            3.0,
+            #2.7,
+            #2.8,
+            #2.9,
+            #3.0,
     ]
     parameters["pressure"] = [0.002332]
     parameters["n_steps"] = [
-            5e7
+            1e8
     ]
-    parameters["shrink_kT"] = [7.0]
+    parameters["shrink_kT"] = [6.0]
     parameters["shrink_n_steps"] = [
             1e7
     ]
@@ -89,7 +89,7 @@ def main():
         job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("validate_lattice_done", False)
         job.doc.setdefault("volume_sampled", False)
-        job.doc.setdefault("job.doc.equilibrated", False)
+        job.doc.setdefault("equilibrated", False)
 
 
 if __name__ == "__main__":

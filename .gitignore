@@ -1,4 +1,5 @@
 workspace
+archive
 *.out
 .signac
 *.json

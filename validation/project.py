@@ -167,7 +167,7 @@ def run_validate_tg(job):
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
-        sim.run_NVT(n_steps=1e7, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=2e7, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(
@@ -201,20 +201,20 @@ def sample_npt(job):
         pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
         num_points = len(volume)
         volume_eq = is_equilibrated(
-                volume[num_points/2:],
+                volume[num_points//2:],
                 threshold_neff=100,
-                threshold_fraction=0.50
+                threshold_fraction=0.10
         )[0]
         pe_eq = is_equilibrated(
-                pe[num_points/2:],
+                pe[num_points//2:],
                 threshold_neff=100,
-                threshold_fraction=0.50
+                threshold_fraction=0.10
         )[0]
         if all([volume_eq, pe_eq]):
             job.doc.equilibrated = True
             uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
-                    volume[num_points/2:],
-                    threshold_fraciton=0.50,
+                    volume[num_points//2:],
+                    threshold_fraciton=0.10,
                     threshold_neff=100
             )
             vol_nm = uncorr_sample * job.doc.ref_length * Unit("nm**3")
