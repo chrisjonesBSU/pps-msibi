@@ -25,8 +25,8 @@ def get_parameters():
     parameters["lengths"] = [25]
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
-            #True,
-            False
+            True,
+            #False
     ]
     parameters["remove_charges"] = [
             True,
@@ -59,7 +59,10 @@ def get_parameters():
             #2.9,
             #3.0,
     ]
-    parameters["pressure"] = [0.002332]
+    parameters["pressure"] = [
+            0.002332,
+            0.0013933,
+    ]
     parameters["n_steps"] = [
             1e8
     ]
@@ -87,7 +90,6 @@ def main():
         job = project.open_job(statepoint)
         job.init()
         job.doc.setdefault("validate_tg_done", False)
-        job.doc.setdefault("validate_lattice_done", False)
         job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)
 

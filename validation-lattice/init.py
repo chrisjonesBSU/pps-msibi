@@ -59,7 +59,6 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("validate_lattice_done", False)
         job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)

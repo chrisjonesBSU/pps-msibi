@@ -171,7 +171,7 @@ def run_validate_lattice(job):
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Simulation finished.")
 
-@MyProject.pre(validate_tg_done)
+@MyProject.pre(validate_lattice_done)
 @MyProject.post(sample_volume_done)
 @MyProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="sample-npt"
