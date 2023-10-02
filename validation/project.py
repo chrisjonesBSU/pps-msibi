@@ -69,6 +69,80 @@ def sample_volume_done(job):
     return job.doc.volume_sampled
 
 
+@MyProject.post(validate_lattice_done)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"},
+        name="validate-lattice"
+)
+def run_validate_lattice(job):
+    """Run a lattice simulation; equilibrate in NPT"""
+    import unyt
+    from unyt import Unit
+    import hoomd_organics
+    from hoomd_organics.base.system import Lattice
+    from hoomd_organics.library import PPS, OPLS_AA_PPS
+    from hoomd_organics.base.simulation import Simulation
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        pps = PPS(num_mols=job.sp.num_mols, lengths=job.sp.lengths)
+        system = Lattice(
+                molecules=[pps],
+                density=1.42,
+                x=0.867,
+                y=0.561,
+                n=job.sp.lattice_n
+        )
+        system.apply_forcefield(
+            r_cut=job.sp.r_cut,
+            auto_scale=True,
+            scale_charges=True,
+            remove_hydrogens=job.sp.remove_hydrogens,
+            remove_charges=job.sp.remove_charges,
+            force_field=OPLS_AA_PPS()
+        )
+
+        # Store reference units and values
+        job.doc.ref_mass = system.reference_mass.to("amu").value
+        job.doc.ref_mass_units = "amu"
+        job.doc.ref_energy = system.reference_energy.to("kJ/mol").value
+        job.doc.ref_energy_units = "kJ/mol"
+        job.doc.ref_length = (
+                system.reference_length.to("nm").value * job.sp.sigma_scale
+        )
+        job.doc.ref_length_units = "nm"
+
+        if job.sp.remove_hydrogens:
+            dt = 0.0003
+        else:
+            dt = 0.0001
+        job.doc.dt = dt
+
+        # Set up Simulation obj
+        gsd_path = job.fn("trajectory.gsd")
+        log_path = job.fn("log.txt")
+
+        sim = Simulation.from_system(
+                system,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                dt=job.doc.dt,
+                seed=job.sp.sim_seed,
+        )
+        sim.pickle_forcefield(job.fn("forcefield.pickle"))
+
+        tau_kT = job.doc.dt * job.sp.tau_kT
+        tau_pressure = job.doc.dt * job.sp.tau_pressure
+        job.doc.tau_kT = tau_kT
+        job.doc.tau_pressure = tau_pressure
+        job.doc.real_time_step = sim.real_timestep.to("fs").value
+        job.doc.real_time_units = "fs"
+
+
 @MyProject.post(validate_tg_done)
 @MyProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="validate-tg"
