@@ -66,7 +66,7 @@ def validate_lattice(job):
 
 @MyProject.label
 def sample_volume_done(job):
-    return job.doc.sample_done
+    return job.doc.volume_sampled
 
 
 @MyProject.post(validate_tg_done)
@@ -187,13 +187,53 @@ def run_validate_tg(job):
         directives={"ngpu": 1, "executable": "python -u"}, name="sample-npt"
 )
 def sample_npt(job):
-    # Add package imports here
+    from cmeutils.sampling import is_equilibrated, equil_sample
+    import numpy as np
+    import unyt as u
+    from unyt import Unit
+
     with job:
         print("JOB ID NUMBER:")
         print(job.id)
         print("------------------------------------")
-        # Add your script here
+        data = np.genfromtxt(job.fn("log.txt"), names=True)
+        volume = data["mdcomputeThermodynamicQuantitiesvolume"]
+        pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
+        num_points = len(volume)
+        volume_eq = is_equilibrated(
+                volume[num_points/2:],
+                threshold_neff=100,
+                threshold_fraction=0.50
+        )[0]
+        pe_eq = is_equilibrated(
+                pe[num_points/2:],
+                threshold_neff=100,
+                threshold_fraction=0.50
+        )[0]
+        if all([volume_eq, pe_eq]):
+            job.doc.equilibrated = True
+            uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
+                    volume[num_points/2:],
+                    threshold_fraciton=0.50,
+                    threshold_neff=100
+            )
+            vol_nm = uncorr_sample * job.doc.ref_length * Unit("nm**3")
+            vol_cm = vol_nm.to("cm**3")
+            np.savetxt(job.fn("vol_sample_indices.txt"), uncorr_indices)
+            np.savetxt(job.fn("volume_cc.txt"), vol_cm.value)
+            job.doc.avg_vol = np.mean(vol_cm).value
+            job.doc.vol_std = np.std(vol_cm).value
 
+            with gsd.hoomd.open(job.fn("restart.gsd")) as traj:
+                snap = traj[0]
+                reduced_mass = sum(snap.particles.mass)
+                mass_amu = (reduced_mass * job.doc.ref_mass) * Unit("amu")
+                mass_g = mass_amu.to("g")
+                job.doc.mass_g = mass_g.value
+
+            job.doc.avg_density = job.doc.mass_g / job.doc.avg_vol
+            job.doc.density_std = job.doc.mass_g / job.doc.vol_std
+            job.doc.volume_sampled = True
 
 if __name__ == "__main__":
     MyProject().main()

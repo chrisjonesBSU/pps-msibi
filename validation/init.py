@@ -88,7 +88,8 @@ def main():
         job.init()
         job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("validate_lattice_done", False)
-        job.doc.setdefault("sample_done", False)
+        job.doc.setdefault("volume_sampled", False)
+        job.doc.setdefault("job.doc.equilibrated", False)
 
 
 if __name__ == "__main__":
