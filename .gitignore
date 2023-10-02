@@ -1,5 +1,6 @@
 workspace
 archive
+log-files
 *.out
 .signac
 *.json
