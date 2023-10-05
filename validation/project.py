@@ -123,6 +123,7 @@ def run_validate_tg(job):
                 seed=job.sp.sim_seed,
         )
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
+        sim.reference_length *= job.sp.sigma_scale
 
         # Store more unit information in job doc
         target_box = system.target_box / job.doc.ref_length
