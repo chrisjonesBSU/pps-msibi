@@ -88,6 +88,10 @@ def run_longer(job):
     from jankflow.library import PPS, OPLS_AA_PPS
     from jankflow.base.simulation import Simulation
     with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
         print("Restarting and continuing a simulation...")
         run_num = job.doc.n_runs + 1
         with open(job.fn("forcefield.pickle"), "rb") as f:
