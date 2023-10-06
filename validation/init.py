@@ -26,45 +26,45 @@ def get_parameters():
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
             True,
-            #False
+            False
     ]
     parameters["remove_charges"] = [
-            True,
-            #False
+            #True,
+            False
     ]
     parameters["sigma_scale"] = [0.955]
     parameters["kT"] = [
             #1.1,
             #1.2,
-            1.25,
+            #1.25,
             1.3,
-            1.35,
+            #1.35,
             1.4,
-            1.45,
+            #1.45,
             1.5,
-            1.55,
+            #1.55,
             1.6,
-            1.65,
+            #1.65,
             1.7,
-            1.75,
+            #1.75,
             1.8,
-            1.85,
+            #1.85,
             1.9,
-            1.95,
+            #1.95,
             2.0,
             #2.1,
-            #2.2,
+            2.2,
             #2.3,
-            #2.4,
+            2.4,
             #2.5,
-            #2.6,
+            2.6,
     ]
     parameters["pressure"] = [
             #0.002332,
             0.0013933,
     ]
     parameters["n_steps"] = [
-            1e8
+           3e7
     ]
     parameters["shrink_kT"] = [6.0]
     parameters["shrink_n_steps"] = [
@@ -92,6 +92,7 @@ def main():
         job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)
+        job.doc.setdefault("n_runs", 0)
 
 
 if __name__ == "__main__":

@@ -53,7 +53,6 @@ class Fry(DefaultSlurmEnvironment):
             help="Specify the partition to submit to."
         )
 
-# Definition of project-related labels (classification)
 @MyProject.label
 def validate_tg_done(job):
     return job.doc.validate_tg_done
@@ -64,7 +63,63 @@ def sample_volume_done(job):
     return job.doc.volume_sampled
 
 
-@MyProject.post(validate_tg_done)
+@MyProject.label
+def initial_run_done(job):
+    return job.doc.n_runs >= 1
+
+
+@MyProject.label
+def equilibrated(job):
+    return job.doc.equilibrated
+
+
+@MyProject.post(equilibrated)
+@MyProject.pre(initial_run_done)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"}, name="run-longer"
+)
+def run_longer(job):
+    import pickle
+
+    import unyt
+    from unyt import Unit
+    import jankflow
+    from jankflow.base.system import Pack
+    from jankflow.library import PPS, OPLS_AA_PPS
+    from jankflow.base.simulation import Simulation
+    with job:
+        print("Restarting and continuing a simulation...")
+        run_num = job.doc.n_runs + 1
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            ff = pickle.load(f)
+
+        gsd_path = job.fn(f"trajectory{run_num}.gsd")
+        log_path = job.fn(f"log{run_num}.txt")
+
+        sim = Simulation(
+                initial_state=job.fn("restart.gsd"),
+                forcefield=ff,
+                dt=job.doc.dt,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                seed=job.sp.sim_seed,
+        )
+        print("Running NPT simulation.")
+        sim.run_NPT(
+            n_steps=1e7,
+            kT=job.sp.kT,
+            pressure=job.sp.pressure,
+            tau_kt=job.doc.tau_kT,
+            tau_pressure=job.doc.tau_pressure,
+            gamma=job.sp.gamma
+        )
+        sim.save_restart_gsd(job.fn("restart.gsd"))
+        print("Simulation finished.")
+
+
+@MyProject.post(initial_run_done)
 @MyProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="validate-tg"
 )
@@ -72,10 +127,10 @@ def run_validate_tg(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
-    import hoomd_organics
-    from hoomd_organics.base.system import Pack
-    from hoomd_organics.library import PPS, OPLS_AA_PPS
-    from hoomd_organics.base.simulation import Simulation
+    import jankflow
+    from jankflow.base.system import Pack
+    from jankflow.library import PPS, OPLS_AA_PPS
+    from jankflow.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -144,7 +199,7 @@ def run_validate_tg(job):
 
         # Anneal to just below target density
         sim.run_update_volume(
-                final_density=job.sp.density*1.15,
+                final_density=job.sp.density*1.10,
                 n_steps=job.sp.shrink_n_steps,
                 period=job.sp.shrink_period,
                 tau_kt=tau_kT,
@@ -163,7 +218,7 @@ def run_validate_tg(job):
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
-        sim.run_NVT(n_steps=2e7, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=1e7, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(
@@ -175,6 +230,7 @@ def run_validate_tg(job):
             gamma=job.sp.gamma
         )
         sim.save_restart_gsd(job.fn("restart.gsd"))
+        job.doc.n_runs = 1
         print("Simulation finished.")
 
 @MyProject.pre(validate_tg_done)
