@@ -21,31 +21,36 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [50]
-    parameters["lengths"] = [25]
-    parameters["density"] = [1.43]
+    parameters["num_mols"] = [72]
+    parameters["lengths"] = [50]
+    parameters["density"] = [1.42]
     parameters["remove_hydrogens"] = [
             True,
-            #False
+            False
     ]
     parameters["remove_charges"] = [
-            True,
-            #False
+            #True,
+            False
     ]
     parameters["sigma_scale"] = [0.955]
-    parameters["kT"] = [1.40]
+    parameters["kT"] = [
+            1.4025,
+    ]
     parameters["pressure"] = [
-            0.002332,
+            #0.002332,
             0.0013933,
     ]
     parameters["n_steps"] = [
-            2e7
+           2e7
     ]
+    parameters["shrink_kT"] = [None]
+    parameters["shrink_n_steps"] = [None]
+    parameters["shrink_period"] = [None]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
     parameters["tau_pressure"] = [800]
     parameters["gamma"] = [0]
-    parameters["gsd_write_freq"] = [1e5]
+    parameters["gsd_write_freq"] = [2e5]
     parameters["log_write_freq"] = [1e4]
     parameters["sim_seed"] = [42]
     return list(parameters.keys()), list(product(*parameters.values()))
@@ -59,9 +64,10 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("validate_lattice_done", False)
+        job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)
+        job.doc.setdefault("n_runs", 0)
 
 
 if __name__ == "__main__":
