@@ -26,31 +26,23 @@ def get_parameters():
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
             True,
-            #False
+            False
     ]
     parameters["remove_charges"] = [
             #True,
             False
     ]
-    parameters["sigma_scale"] = [0.955]
+    parameters["sigma_scale"] = [0.955, 1.0]
     parameters["kT"] = [
             1.1,
             1.2,
-            1.25,
             1.3,
-            1.35,
             1.4,
-            1.45,
             1.5,
-            1.55,
             1.6,
-            1.65,
             1.7,
-            1.75,
             1.8,
-            1.85,
             1.9,
-            1.95,
             2.0,
             2.1,
             2.2,
@@ -70,7 +62,7 @@ def get_parameters():
     ]
     parameters["pressure"] = [
             #0.002332,
-            0.0013933,
+            #0.0013933,
     ]
     parameters["n_steps"] = [
            3e7
@@ -98,10 +90,12 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("validate_tg_done", False)
         job.doc.setdefault("volume_sampled", False)
-        job.doc.setdefault("equilibrated", False)
-        job.doc.setdefault("n_runs", 0)
+        job.doc.setdefault("msd_sampled", False)
+        job.doc.setdefault("npt_equilibrated", False)
+        job.doc.setdefault("nvt_equilibrated", False)
+        job.doc.setdefault("npt_runs", 0)
+        job.doc.setdefault("nvt_runs", 0)
 
 
 if __name__ == "__main__":

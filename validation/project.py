@@ -53,10 +53,6 @@ class Fry(DefaultSlurmEnvironment):
             help="Specify the partition to submit to."
         )
 
-@MyProject.label
-def validate_tg_done(job):
-    return job.doc.validate_tg_done
-
 
 @MyProject.label
 def sample_volume_done(job):
@@ -68,111 +64,30 @@ def sample_msd_done(job):
 
 
 @MyProject.label
-def initial_run_done(job):
-    return job.doc.n_runs >= 1
+def initial_npt_run_done(job):
+    return job.doc.npt_runs >= 1
 
 
 @MyProject.label
-def equilibrated(job):
-    return job.doc.equilibrated
+def initial_nvt_run_done(job):
+    return job.doc.nvt_runs >= 1
 
 
-@MyProject.pre(sample_volume_done)
-@MyProject.post(sample_msd_done)
+@MyProject.label
+def npt_equilibrated(job):
+    return job.doc.npt_equilibrated
+
+
+@MyProject.label
+def nvt_equilibrated(job):
+    return job.doc.nvt_equilibrated
+
+
+@MyProject.post(initial_npt_run_done)
 @MyProject.operation(
-        directives={"ngpu": 1, "executable": "python -u"}, name="nvt"
+        directives={"ngpu": 1, "executable": "python -u"}, name="npt"
 )
-def run_nvt(job):
-    import pickle
-    import unyt
-    from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
-    with job:
-        print("------------------------------------")
-        print("JOB ID NUMBER:")
-        print(job.id)
-        print("------------------------------------")
-        print("Running NVT simulation...")
-        with open(job.fn("forcefield.pickle"), "rb") as f:
-            ff = pickle.load(f)
-
-        gsd_path = job.fn(f"trajectory-nvt.gsd")
-        log_path = job.fn(f"log-nvt.txt")
-
-        sim = Simulation(
-                initial_state=job.fn("restart.gsd"),
-                forcefield=ff,
-                dt=job.doc.dt,
-                gsd_write_freq=job.sp.gsd_write_freq,
-                gsd_file_name=gsd_path,
-                log_write_freq=job.sp.log_write_freq,
-                log_file_name=log_path,
-                seed=job.sp.sim_seed,
-        )
-        sim.run_NVT(
-            n_steps=5e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT,
-        )
-        sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
-        print("Simulation finished.")
-
-@MyProject.post(equilibrated)
-@MyProject.pre(initial_run_done)
-@MyProject.operation(
-        directives={"ngpu": 1, "executable": "python -u"}, name="run-longer"
-)
-def run_longer(job):
-    import pickle
-
-    import unyt
-    from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
-    with job:
-        print("------------------------------------")
-        print("JOB ID NUMBER:")
-        print(job.id)
-        print("------------------------------------")
-        print("Restarting and continuing a simulation...")
-        run_num = job.doc.n_runs + 1
-        with open(job.fn("forcefield.pickle"), "rb") as f:
-            ff = pickle.load(f)
-
-        gsd_path = job.fn(f"trajectory{run_num}.gsd")
-        log_path = job.fn(f"log{run_num}.txt")
-
-        sim = Simulation(
-                initial_state=job.fn("restart.gsd"),
-                forcefield=ff,
-                dt=job.doc.dt,
-                gsd_write_freq=job.sp.gsd_write_freq,
-                gsd_file_name=gsd_path,
-                log_write_freq=job.sp.log_write_freq,
-                log_file_name=log_path,
-                seed=job.sp.sim_seed,
-        )
-        print("Running NPT simulation.")
-        sim.run_NPT(
-            n_steps=1e7,
-            kT=job.sp.kT,
-            pressure=job.sp.pressure,
-            tau_kt=job.doc.tau_kT,
-            tau_pressure=job.doc.tau_pressure,
-            gamma=job.sp.gamma
-        )
-        sim.save_restart_gsd(job.fn("restart.gsd"))
-        print("Simulation finished.")
-
-
-@MyProject.post(initial_run_done)
-@MyProject.operation(
-        directives={"ngpu": 1, "executable": "python -u"}, name="validate-tg"
-)
-def run_validate_tg(job):
+def run_npt(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
@@ -187,10 +102,7 @@ def run_validate_tg(job):
         print("------------------------------------")
 
         pps = PPS(num_mols=job.sp.num_mols, lengths=job.sp.lengths)
-
-        system = Pack(
-                molecules=pps, density=job.sp.density,
-        )
+        system = Pack(molecules=pps, density=job.sp.density)
         system.apply_forcefield(
             r_cut=job.sp.r_cut,
             auto_scale=True,
@@ -208,14 +120,18 @@ def run_validate_tg(job):
                 system.reference_length.to("nm").value * job.sp.sigma_scale
         )
         job.doc.ref_length_units = "nm"
+        if job.sp.sigma_scale == 1.0:
+            job.doc.pressure = 0.0015996
+        elif job.sp.sigma_scale == 0.955:
+            job.doc.pressure = 0.0013933
         if job.sp.remove_hydrogens:
             dt = 0.0003
         else:
             dt = 0.0001
         job.doc.dt = dt
         # Set up Simulation obj
-        gsd_path = job.fn("trajectory.gsd")
-        log_path = job.fn("log.txt")
+        gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
+        log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
 
         sim = Simulation.from_system(
                 system,
@@ -263,7 +179,6 @@ def run_validate_tg(job):
                 tau_kt=tau_kT,
                 kT=job.sp.kT
         )
-        sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Shrinking and compressing finished.")
         # Short run at NVT
         print("Running NVT simulation.")
@@ -278,63 +193,138 @@ def run_validate_tg(job):
             tau_pressure=job.doc.tau_pressure,
             gamma=job.sp.gamma
         )
-        sim.save_restart_gsd(job.fn("restart.gsd"))
-        job.doc.n_runs = 1
+        sim.save_restart_gsd(job.fn("restart-npt.gsd"))
+        job.doc.npt_runs = 1
         print("Simulation finished.")
 
-@MyProject.pre(validate_tg_done)
-@MyProject.post(sample_volume_done)
-@MyProject.operation(
-        directives={"ngpu": 1, "executable": "python -u"}, name="sample-npt"
-)
-def sample_npt(job):
-    from cmeutils.sampling import is_equilibrated, equil_sample
-    import numpy as np
-    import unyt as u
-    from unyt import Unit
 
+@MyProject.pre(initial_npt_run_done)
+@MyProject.post(npt_equilibrated)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"},
+        name="run-npt-longer"
+)
+def run_npt_longer(job):
+    import pickle
+    import unyt
+    from unyt import Unit
+    import jankflow
+    from jankflow.base.system import Pack
+    from jankflow.library import PPS, OPLS_AA_PPS
+    from jankflow.base.simulation import Simulation
     with job:
+        print("------------------------------------")
         print("JOB ID NUMBER:")
         print(job.id)
         print("------------------------------------")
-        data = np.genfromtxt(job.fn("log.txt"), names=True)
-        volume = data["mdcomputeThermodynamicQuantitiesvolume"]
-        pe = data["mdcomputeThermodynamicQuantitiespotential_energy"]
-        num_points = len(volume)
-        volume_eq = is_equilibrated(
-                volume[num_points//2:],
-                threshold_neff=100,
-                threshold_fraction=0.10
-        )[0]
-        pe_eq = is_equilibrated(
-                pe[num_points//2:],
-                threshold_neff=100,
-                threshold_fraction=0.10
-        )[0]
-        if all([volume_eq, pe_eq]):
-            job.doc.equilibrated = True
-            uncorr_sample, uncorr_indices, prod_start, Neff = equil_sample(
-                    volume[num_points//2:],
-                    threshold_fraciton=0.10,
-                    threshold_neff=100
-            )
-            vol_nm = uncorr_sample * job.doc.ref_length * Unit("nm**3")
-            vol_cm = vol_nm.to("cm**3")
-            np.savetxt(job.fn("vol_sample_indices.txt"), uncorr_indices)
-            np.savetxt(job.fn("volume_cc.txt"), vol_cm.value)
-            job.doc.avg_vol = np.mean(vol_cm).value
-            job.doc.vol_std = np.std(vol_cm).value
+        print("Restarting and continuing NPT simulation...")
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            ff = pickle.load(f)
 
-            with gsd.hoomd.open(job.fn("restart.gsd")) as traj:
-                snap = traj[0]
-                reduced_mass = sum(snap.particles.mass)
-                mass_amu = (reduced_mass * job.doc.ref_mass) * Unit("amu")
-                mass_g = mass_amu.to("g")
-                job.doc.mass_g = mass_g.value
+        gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
+        log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
 
-            job.doc.avg_density = job.doc.mass_g / job.doc.avg_vol
-            job.doc.density_std = job.doc.mass_g / job.doc.vol_std
-            job.doc.volume_sampled = True
+        sim = Simulation(
+                initial_state=job.fn("restart-npt.gsd"),
+                forcefield=ff,
+                dt=job.doc.dt,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                seed=job.sp.sim_seed,
+        )
+        print("Running NPT simulation.")
+        sim.run_NPT(
+            n_steps=1e7,
+            kT=job.sp.kT,
+            pressure=job.doc.pressure,
+            tau_kt=job.doc.tau_kT,
+            tau_pressure=job.doc.tau_pressure,
+            gamma=job.sp.gamma
+        )
+        sim.save_restart_gsd(job.fn("restart-npt.gsd"))
+        job.doc.npt_runs += 1
+        print("Simulation finished.")
+
+
+@MyProject.pre(sample_volume_done)
+@MyProject.post(initial_nvt_run_done)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"}, name="nvt"
+)
+def run_nvt(job):
+    import pickle
+    import unyt
+    from unyt import Unit
+    import jankflow
+    from jankflow.base.system import Pack
+    from jankflow.library import PPS, OPLS_AA_PPS
+    from jankflow.base.simulation import Simulation
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Running initial NVT simulation...")
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            ff = pickle.load(f)
+
+        gsd_path = job.fn(f"trajectory-nvt{job.doc.nvt_runs}.gsd")
+        log_path = job.fn(f"log-nvt{job.doc.nvt_runs}.txt")
+        sim = Simulation(
+                initial_state=job.fn("restart-npt.gsd"),
+                forcefield=ff,
+                dt=job.doc.dt,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                seed=job.sp.sim_seed,
+        )
+        sim.run_NVT(n_steps=5e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT)
+        sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
+        job.doc.nvt_runs = 1
+        print("Simulation finished.")
+
+
+@MyProject.pre(initial_nvt_run_done)
+@MyProject.post(nvt_equilibrated)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"},
+        name="run-nvt-longer"
+)
+def run_nvt_longer(job):
+    import pickle
+    import unyt
+    from unyt import Unit
+    import jankflow
+    from jankflow.base.simulation import Simulation
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Restarting NVT simulation...")
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            ff = pickle.load(f)
+
+        gsd_path = job.fn(f"trajectory-nvt{job.doc.nvt_runs}.gsd")
+        log_path = job.fn(f"log-nvt{job.doc.nvt_runs}.txt")
+        sim = Simulation(
+                initial_state=job.fn("restart-nvt.gsd"),
+                forcefield=ff,
+                dt=job.doc.dt,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                seed=job.sp.sim_seed,
+        )
+        sim.run_NVT(n_steps=1e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT)
+        sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
+        job.doc.nvt_runs += 1
+        print("Simulation finished.")
 
 if __name__ == "__main__":
     MyProject().main()
