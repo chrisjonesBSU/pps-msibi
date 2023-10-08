@@ -23,7 +23,7 @@ def get_parameters():
     parameters = OrderedDict()
     parameters["num_mols"] = [50]
     parameters["lengths"] = [25]
-    parameters["density"] = [1.3]
+    parameters["density"] = [1.35]
     parameters["remove_hydrogens"] = [
             True,
             False
@@ -34,7 +34,6 @@ def get_parameters():
     ]
     parameters["sigma_scale"] = [0.955, 1.0]
     parameters["kT"] = [
-            1.1,
             1.2,
             1.3,
             1.4,
@@ -61,16 +60,13 @@ def get_parameters():
             3.5,
     ]
     parameters["pressure"] = [
+            None,
             #0.002332,
             #0.0013933,
     ]
-    parameters["n_steps"] = [
-           3e7
-    ]
+    parameters["n_steps"] = [5e7]
     parameters["shrink_kT"] = [6.0]
-    parameters["shrink_n_steps"] = [
-            1e7
-    ]
+    parameters["shrink_n_steps"] = [1e7]
     parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
