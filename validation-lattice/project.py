@@ -290,6 +290,10 @@ def run_validate_lattice(job):
             dt = 0.0003
         else:
             dt = 0.0001
+        if job.sp.sigma_scale == 1.0:
+            pressure = 0.001601
+        else:
+            pressure = 0.0013933
         job.doc.dt = dt
         # Set up Simulation obj
         gsd_path = job.fn("trajectory.gsd")
@@ -317,20 +321,19 @@ def run_validate_lattice(job):
         job.doc.real_time_units = "fs"
 
         #Quick chain relaxation at cold temperature:
-        sim.run_NVT(n_steps=5e6, kT=0.8, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=5e6, kT=0.5, tau_kt=tau_kT)
 
-        print("Running shrink step.")
         heating_ramp = sim.temperature_ramp(
-                n_steps=1e7, kT_start=0.8, kT_final=job.sp.kT
+                n_steps=5e6, kT_start=0.5, kT_final=job.sp.kT
         )
-        sim.run_NVT(n_steps=1e7, kT=heating_ramp, tau_kt=tau_kT)
+        sim.run_NVT(n_steps=5e6, kT=heating_ramp, tau_kt=tau_kT)
         sim.run_NVT(n_steps=5e6, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))
         print("Running NPT simulation.")
         sim.run_NPT(
             n_steps=job.sp.n_steps,
             kT=job.sp.kT,
-            pressure=job.sp.pressure,
+            pressure=pressure,
             tau_kt=tau_kT,
             tau_pressure=job.doc.tau_pressure,
             gamma=job.sp.gamma
