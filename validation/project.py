@@ -63,6 +63,10 @@ def sample_volume_done(job):
     return job.doc.volume_sampled
 
 
+def sample_msd_done(job):
+    return job.doc.msd_sampled
+
+
 @MyProject.label
 def initial_run_done(job):
     return job.doc.n_runs >= 1
@@ -72,6 +76,47 @@ def initial_run_done(job):
 def equilibrated(job):
     return job.doc.equilibrated
 
+
+@MyProject.pre(sample_volume_done)
+@MyProject.post(sample_msd_done)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"}, name="nvt"
+)
+def run_nvt(job):
+    import pickle
+    import unyt
+    from unyt import Unit
+    import jankflow
+    from jankflow.base.system import Pack
+    from jankflow.library import PPS, OPLS_AA_PPS
+    from jankflow.base.simulation import Simulation
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Running NVT simulation...")
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            ff = pickle.load(f)
+
+        gsd_path = job.fn(f"trajectory-nvt.gsd")
+        log_path = job.fn(f"log-nvt.txt")
+
+        sim = Simulation(
+                initial_state=job.fn("restart.gsd"),
+                forcefield=ff,
+                dt=job.doc.dt,
+                gsd_write_freq=job.sp.gsd_write_freq,
+                gsd_file_name=gsd_path,
+                log_write_freq=job.sp.log_write_freq,
+                log_file_name=log_path,
+                seed=job.sp.sim_seed,
+        )
+        sim.run_NVT(
+            n_steps=5e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT,
+        )
+        sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
+        print("Simulation finished.")
 
 @MyProject.post(equilibrated)
 @MyProject.pre(initial_run_done)

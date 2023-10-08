@@ -81,6 +81,7 @@ def equilibrated(job):
 def run_longer(job):
     import pickle
 
+    import numpy as np
     import unyt
     from unyt import Unit
     import jankflow
@@ -244,6 +245,7 @@ def run_validate_tg(job):
 )
 def run_validate_lattice(job):
     """Run a bulk simulation; equilibrate in NPT"""
+    import numpy as np
     import unyt
     from unyt import Unit
     import jankflow
@@ -261,9 +263,9 @@ def run_validate_lattice(job):
         system = Lattice(
                 molecules=pps,
                 density=job.sp.density,
-                x=0.867,
-                y=0.561,
-                n=int(np.sqrt(job.sp.n_mols // 2))
+                y=0.867,
+                x=0.561,
+                n=int(np.sqrt(job.sp.num_mols // 2))
         )
 
         system.apply_forcefield(
@@ -319,11 +321,8 @@ def run_validate_lattice(job):
 
         print("Running shrink step.")
         heating_ramp = sim.temperature_ramp(
-                n_steps=1e7,
-                kT_start=0.8,
-                kT_final=job.sp.kT
+                n_steps=1e7, kT_start=0.8, kT_final=job.sp.kT
         )
-
         sim.run_NVT(n_steps=1e7, kT=heating_ramp, tau_kt=tau_kT)
         sim.run_NVT(n_steps=5e6, kT=job.sp.kT, tau_kt=tau_kT)
         sim.save_restart_gsd(job.fn("restart.gsd"))

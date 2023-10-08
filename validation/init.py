@@ -26,7 +26,7 @@ def get_parameters():
     parameters["density"] = [1.3]
     parameters["remove_hydrogens"] = [
             True,
-            False
+            #False
     ]
     parameters["remove_charges"] = [
             #True,
@@ -58,6 +58,15 @@ def get_parameters():
             2.4,
             2.5,
             2.6,
+            2.7,
+            2.8,
+            2.9,
+            3.0,
+            3.1,
+            3.2,
+            3.3,
+            3.4,
+            3.5,
     ]
     parameters["pressure"] = [
             #0.002332,

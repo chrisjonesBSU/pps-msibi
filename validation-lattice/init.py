@@ -22,7 +22,7 @@ def get_parameters():
     ''''''
     parameters = OrderedDict()
     parameters["num_mols"] = [72]
-    parameters["lengths"] = [50]
+    parameters["lengths"] = [20]
     parameters["density"] = [1.42]
     parameters["remove_hydrogens"] = [
             True,
