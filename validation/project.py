@@ -188,7 +188,7 @@ def run_npt(job):
         sim.run_NPT(
             n_steps=job.sp.n_steps,
             kT=job.sp.kT,
-            pressure=job.sp.pressure,
+            pressure=job.doc.pressure,
             tau_kt=tau_kT,
             tau_pressure=job.doc.tau_pressure,
             gamma=job.sp.gamma
