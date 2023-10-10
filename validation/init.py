@@ -34,6 +34,7 @@ def get_parameters():
     ]
     parameters["sigma_scale"] = [0.955, 1.0]
     parameters["kT"] = [
+            1.0,
             1.2,
             1.4,
             1.6,

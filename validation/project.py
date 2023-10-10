@@ -9,6 +9,7 @@ import signac
 from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
 import os
+from unyt import Unit
 
 
 class MyProject(FlowProject):
@@ -81,6 +82,17 @@ def npt_equilibrated(job):
 @MyProject.label
 def nvt_equilibrated(job):
     return job.doc.nvt_equilibrated
+
+def get_ref_values(job):
+    ref_length = job.doc.ref_length * Unit(job.doc.ref_length_units)
+    ref_mass = job.doc.ref_mass * Unit(job.doc.ref_mass_units)
+    ref_energy = job.doc.ref_energy * Unit(job.doc.ref_energy_units)
+    ref_vaues_dict = {
+            "length": ref_length,
+            "mass": ref_mass,
+            "energy": ref_energy
+    }
+    return ref_values_dict
 
 
 @MyProject.post(initial_npt_run_done)
@@ -221,12 +233,15 @@ def run_npt_longer(job):
         with open(job.fn("forcefield.pickle"), "rb") as f:
             ff = pickle.load(f)
 
+        ref_values = get_ref_values(job)
+
         gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
         log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
 
         sim = Simulation(
                 initial_state=job.fn("restart-npt.gsd"),
                 forcefield=ff,
+                reference_values=ref_values,
                 dt=job.doc.dt,
                 gsd_write_freq=job.sp.gsd_write_freq,
                 gsd_file_name=gsd_path,
@@ -272,15 +287,24 @@ def run_nvt(job):
 
         gsd_path = job.fn(f"trajectory-nvt{job.doc.nvt_runs}.gsd")
         log_path = job.fn(f"log-nvt{job.doc.nvt_runs}.txt")
+        ref_values = get_ref_values(job)
         sim = Simulation(
                 initial_state=job.fn("restart-npt.gsd"),
                 forcefield=ff,
+                reference_values=ref_values,
                 dt=job.doc.dt,
                 gsd_write_freq=job.sp.gsd_write_freq,
                 gsd_file_name=gsd_path,
                 log_write_freq=job.sp.log_write_freq,
                 log_file_name=log_path,
                 seed=job.sp.sim_seed,
+        )
+        sim.run_update_volume(
+                n_steps=2e6,
+                period=1,
+                kT=job.sp.kT,
+                tau_kt=job.doc.tau_kT,
+                final_density=job.doc.avg_density
         )
         sim.run_NVT(n_steps=5e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT)
         sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
@@ -311,9 +335,11 @@ def run_nvt_longer(job):
 
         gsd_path = job.fn(f"trajectory-nvt{job.doc.nvt_runs}.gsd")
         log_path = job.fn(f"log-nvt{job.doc.nvt_runs}.txt")
+        ref_values = get_ref_values(job)
         sim = Simulation(
                 initial_state=job.fn("restart-nvt.gsd"),
                 forcefield=ff,
+                reference_values=ref_values,
                 dt=job.doc.dt,
                 gsd_write_freq=job.sp.gsd_write_freq,
                 gsd_file_name=gsd_path,
