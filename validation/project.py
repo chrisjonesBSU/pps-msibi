@@ -87,7 +87,7 @@ def get_ref_values(job):
     ref_length = job.doc.ref_length * Unit(job.doc.ref_length_units)
     ref_mass = job.doc.ref_mass * Unit(job.doc.ref_mass_units)
     ref_energy = job.doc.ref_energy * Unit(job.doc.ref_energy_units)
-    ref_vaues_dict = {
+    ref_values_dict = {
             "length": ref_length,
             "mass": ref_mass,
             "energy": ref_energy
