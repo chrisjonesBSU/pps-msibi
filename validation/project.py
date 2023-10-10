@@ -233,11 +233,10 @@ def run_npt_longer(job):
         with open(job.fn("forcefield.pickle"), "rb") as f:
             ff = pickle.load(f)
 
-        ref_values = get_ref_values(job)
 
         gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
         log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
-
+        ref_values = get_ref_values(job)
         sim = Simulation(
                 initial_state=job.fn("restart-npt.gsd"),
                 forcefield=ff,
