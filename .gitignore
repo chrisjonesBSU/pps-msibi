@@ -4,3 +4,4 @@ log-files
 *.out
 .signac
 *.json
+.ipynb_checkpoints

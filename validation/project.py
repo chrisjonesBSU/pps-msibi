@@ -250,7 +250,7 @@ def run_npt_longer(job):
         )
         print("Running NPT simulation.")
         sim.run_NPT(
-            n_steps=1e7,
+            n_steps=2e7,
             kT=job.sp.kT,
             pressure=job.doc.pressure,
             tau_kt=job.doc.tau_kT,
