@@ -103,10 +103,9 @@ def run_npt(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -121,7 +120,9 @@ def run_npt(job):
             scale_charges=True,
             remove_hydrogens=job.sp.remove_hydrogens,
             remove_charges=job.sp.remove_charges,
-            force_field=OPLS_AA_PPS()
+            force_field=OPLS_AA_PPS(),
+            pppm_resolution=job.sp.pppm_resolution,
+            pppm_order=job.sp.pppm_order
         )
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
@@ -220,10 +221,7 @@ def run_npt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -250,7 +248,7 @@ def run_npt_longer(job):
         )
         print("Running NPT simulation.")
         sim.run_NPT(
-            n_steps=2e7,
+            n_steps=4e7,
             kT=job.sp.kT,
             pressure=job.doc.pressure,
             tau_kt=job.doc.tau_kT,
@@ -271,10 +269,8 @@ def run_nvt(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -321,8 +317,7 @@ def run_nvt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.simulation import Simulation
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
