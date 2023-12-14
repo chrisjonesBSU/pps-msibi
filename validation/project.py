@@ -105,10 +105,10 @@ def run_npt(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -222,10 +222,8 @@ def run_npt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -273,10 +271,8 @@ def run_nvt(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import floewrmd
+    from flowermd.base import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -323,8 +319,8 @@ def run_nvt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
