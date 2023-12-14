@@ -21,32 +21,27 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [50]
-    parameters["lengths"] = [30]
-    parameters["density"] = [1.32]
+    parameters["num_mols"] = [1]
+    parameters["lengths"] = [20, 40, 60, 80]
+    parameters["density"] = [0.0001]
     parameters["remove_hydrogens"] = [
-            #True,
+            True,
             False
     ]
     parameters["remove_charges"] = [
             #True,
             False
     ]
-    parameters["sigma_scale"] = [0.96]
+    parameters["sigma_scale"] = [0.955]
     parameters["kT"] = [
-            1.5, # Just below Tg
-            2.2, # About half-way between Tg and Tm
-            2.5, # Just below Tm
-            2.8, # Above Tm (Processing temp of 320 C)
+            5.0,
+            6.0,
+            7.0,
+            8.0,
     ]
-    parameters["pressure"] = [0.002332]
     parameters["n_steps"] = [5e7]
-    parameters["shrink_kT"] = [8.0]
-    parameters["shrink_n_steps"] = [5e7]
-    parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
-    parameters["tau_pressure"] = [10]
     parameters["gsd_write_freq"] = [1e5]
     parameters["log_write_freq"] = [1e4]
     parameters["sim_seed"] = [42]
@@ -54,15 +49,15 @@ def get_parameters():
 
 
 def main():
-    project = signac.init_project() # Set the signac project name
+    project = signac.init_project()
     param_names, param_combinations = get_parameters()
-    # Create the generate jobs
+    # Create workspace of jobs
     for params in param_combinations:
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("sim_done", False)
-        job.doc.setdefault("sample_done", False)
+        job.doc.setdefault("equilibrated", False)
+        job.doc.setdefault("runs", 0)
 
 
 if __name__ == "__main__":
