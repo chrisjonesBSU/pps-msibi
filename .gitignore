@@ -5,3 +5,5 @@ log-files
 .signac
 *.json
 .ipynb_checkpoints
+*.gsd
+*.png
