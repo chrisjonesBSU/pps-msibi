@@ -57,6 +57,8 @@ class Fry(DefaultSlurmEnvironment):
 
 @MyProject.label
 def sample_volume_done(job):
+    if job.doc.skip_npt_equil:
+        return job.doc.skip_npt_equil
     return job.doc.volume_sampled
 
 
@@ -250,7 +252,7 @@ def run_npt_longer(job):
         )
         print("Running NPT simulation.")
         sim.run_NPT(
-            n_steps=2e7,
+            n_steps=4e8,
             kT=job.sp.kT,
             pressure=job.doc.pressure,
             tau_kt=job.doc.tau_kT,
