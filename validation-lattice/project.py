@@ -84,10 +84,10 @@ def run_longer(job):
     import numpy as np
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Pack
+    from flowernd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -132,10 +132,10 @@ def run_validate_tg(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -248,10 +248,10 @@ def run_validate_lattice(job):
     import numpy as np
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Lattice
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Lattice
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
