@@ -11,7 +11,7 @@ from flow.environment import DefaultSlurmEnvironment
 import os
 
 
-class MyProject(FlowProject):
+class PPSProject(FlowProject):
     pass
 
 
@@ -53,29 +53,29 @@ class Fry(DefaultSlurmEnvironment):
             help="Specify the partition to submit to."
         )
 
-@MyProject.label
+@PPSProject.label
 def validate_tg_done(job):
     return job.doc.validate_tg_done
 
 
-@MyProject.label
+@PPSProject.label
 def sample_volume_done(job):
     return job.doc.volume_sampled
 
 
-@MyProject.label
+@PPSProject.label
 def initial_run_done(job):
     return job.doc.n_runs >= 1
 
 
-@MyProject.label
+@PPSProject.label
 def equilibrated(job):
     return job.doc.equilibrated
 
 
-@MyProject.post(equilibrated)
-@MyProject.pre(initial_run_done)
-@MyProject.operation(
+@PPSProject.post(equilibrated)
+@PPSProject.pre(initial_run_done)
+@PPSProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="run-longer"
 )
 def run_longer(job):
@@ -124,8 +124,8 @@ def run_longer(job):
         print("Simulation finished.")
 
 
-@MyProject.post(initial_run_done)
-@MyProject.operation(
+@PPSProject.post(initial_run_done)
+@PPSProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="validate-tg"
 )
 def run_validate_tg(job):
@@ -239,8 +239,8 @@ def run_validate_tg(job):
         print("Simulation finished.")
 
 
-@MyProject.post(initial_run_done)
-@MyProject.operation(
+@PPSProject.post(initial_run_done)
+@PPSProject.operation(
         directives={"ngpu": 1, "executable": "python -u"}, name="lattice"
 )
 def run_validate_lattice(job):
@@ -262,7 +262,6 @@ def run_validate_lattice(job):
 
         system = Lattice(
                 molecules=pps,
-                density=job.sp.density,
                 y=0.867,
                 x=0.561,
                 n=int(np.sqrt(job.sp.num_mols // 2))
@@ -343,4 +342,4 @@ def run_validate_lattice(job):
         print("Simulation finished.")
 
 if __name__ == "__main__":
-    MyProject().main()
+    PPSProject().main()

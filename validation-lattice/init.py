@@ -32,7 +32,7 @@ def get_parameters():
             #True,
             False
     ]
-    parameters["sigma_scale"] = [0.955]
+    parameters["sigma_scale"] = [0.955, 1]
     parameters["kT"] = [
             1.4025,
     ]
