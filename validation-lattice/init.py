@@ -53,11 +53,10 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("validate_tg_done", False)
-        job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)
         job.doc.setdefault("system_initialized", False)
-        job.doc.setdefault("n_runs", 0)
+        job.doc.setdefault("npt_runs", 0)
+        job.doc.setdefault("npt_sample_count", 0)
 
 
 if __name__ == "__main__":

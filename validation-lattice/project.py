@@ -59,7 +59,7 @@ def system_initialized(job):
 
 @PPSProject.label
 def initial_run_done(job):
-    return job.doc.n_runs >= 1
+    return job.doc.npt_runs >= 1
 
 
 @PPSProject.label
@@ -164,6 +164,7 @@ def run_validate_lattice(job):
     import pickle
     from flowermd.base.simulation import Simulation
     from flowermd.utils import get_target_box_mass_density
+    from utils import check_npt_equilibration
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -236,8 +237,14 @@ def run_validate_lattice(job):
             gamma=job.sp.gamma
         )
         sim.save_restart_gsd(job.fn("restart.gsd"))
-        job.doc.n_runs = 1
-
+        job.doc.npt_runs = 1
+        npt_sample_count = int(job.sp.n_steps / job.sp.log_write_freq)
+        job.doc.npt_sample_count = npt_sample_count
+        is_equilibrated = check_npt_equilibration(job,
+                                                  sample_idx=-npt_sample_count)
+        if is_equilibrated:
+            print("Simulation equilibrated.")
+            job.doc.equilibrated = True
         print("Simulation finished.")
 
 
@@ -249,13 +256,14 @@ def run_validate_lattice(job):
 def run_longer(job):
     import pickle
     from flowermd.base.simulation import Simulation
+    from utils import check_npt_equilibration
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
         print(job.id)
         print("------------------------------------")
         print("Restarting and continuing a simulation...")
-        run_num = job.doc.n_runs + 1
+        run_num = job.doc.npt_runs + 1
         with open(job.fn("forcefield.pickle"), "rb") as f:
             ff = pickle.load(f)
 
@@ -283,6 +291,15 @@ def run_longer(job):
             gamma=job.sp.gamma
         )
         sim.save_restart_gsd(job.fn("restart.gsd"))
+
+        npt_sample_count = int(
+            job.sp.n_steps / job.sp.log_write_freq) + job.doc.npt_sample_count
+        is_equilibrated = check_npt_equilibration(job,
+                                                  sample_idx=-npt_sample_count)
+        job.doc.npt_sample_count = npt_sample_count
+        if is_equilibrated:
+            print("Simulation equilibrated.")
+            job.doc.equilibrated = True
         print("Simulation finished.")
 
 
