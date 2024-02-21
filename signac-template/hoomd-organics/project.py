@@ -28,18 +28,6 @@ class Borah(DefaultSlurmEnvironment):
         )
 
 
-class R2(DefaultSlurmEnvironment):
-    hostname_pattern = "r2"
-    template = "r2.sh"
-
-    @classmethod
-    def add_args(cls, parser):
-        parser.add_argument(
-            "--partition",
-            default="shortgpuq",
-            help="Specify the partition to submit to."
-        )
-
 
 class Fry(DefaultSlurmEnvironment):
     hostname_pattern = "fry"
@@ -70,12 +58,10 @@ def sample_done(job):
 )
 def run_npt(job):
     """Run a bulk simulation; equilibrate in NPT"""
-    import unyt
-    from unyt import Unit
-    import hoomd_organics
-    from hoomd_organics.base.system import Pack
-    from hoomd_organics.library import PPS, OPLS_AA_PPS
-    from hoomd_organics.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -125,7 +111,7 @@ def run_npt(job):
         # Store more unit information in job doc
         tau_kT = job.doc.dt * job.sp.tau_kT
         tau_pressure = job.doc.dt * job.sp.tau_pressure
-        job.doc.tau_kT = tau_kjob.doc.T
+        job.doc.tau_kT = tau_kT
         job.doc.tau_pressure = tau_pressure
         job.doc.real_time_step = sim.real_timestep.to("fs").value
         job.doc.real_time_units = "fs"

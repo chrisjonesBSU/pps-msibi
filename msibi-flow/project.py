@@ -29,19 +29,6 @@ class Borah(DefaultSlurmEnvironment):
             help="Specify the partition to submit to."
         )
 
-
-class R2(DefaultSlurmEnvironment):
-    hostname_pattern = "r2"
-    template = "r2.sh"
-
-    @classmethod
-    def add_args(cls, parser):
-        parser.add_argument(
-            "--partition", default="gpuq",
-            help="Specify the partition to submit to."
-        )
-
-
 class Fry(DefaultSlurmEnvironment):
     hostname_pattern = "fry"
     template = "fry.sh"
