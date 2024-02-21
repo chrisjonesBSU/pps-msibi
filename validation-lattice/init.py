@@ -21,35 +21,25 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [50]
-    parameters["lengths"] = [12]
+    parameters["num_mols"] = [500]
+    parameters["lengths"] = [20]
     parameters["density"] = [1.43]
     parameters["remove_hydrogens"] = [
             True,
-            False
     ]
     parameters["remove_charges"] = [
-            #True,
+            True,
             False
     ]
-    parameters["sigma_scale"] = [0.955, 1]
-    parameters["kT"] = [
-            1.4025,
-    ]
-    parameters["pressure"] = [
-            None,
-            #0.002332,
-            #0.0013933,
-    ]
+    parameters["sigma_scale"] = [1.0]
+    parameters["kT"] = [1.0,]
+    parameters["pressure"] = [0.0023263]
     parameters["n_steps"] = [5e6]
-    parameters["shrink_kT"] = [None]
-    parameters["shrink_n_steps"] = [None]
-    parameters["shrink_period"] = [None]
     parameters["r_cut"] = [2.5]
     parameters["tau_kT"] = [100]
     parameters["tau_pressure"] = [800]
     parameters["gamma"] = [0]
-    parameters["gsd_write_freq"] = [2e5]
+    parameters["gsd_write_freq"] = [1e4]
     parameters["log_write_freq"] = [1e4]
     parameters["sim_seed"] = [42]
     return list(parameters.keys()), list(product(*parameters.values()))
@@ -63,10 +53,10 @@ def main():
         statepoint = dict(zip(param_names, params))
         job = project.open_job(statepoint)
         job.init()
-        job.doc.setdefault("validate_tg_done", False)
-        job.doc.setdefault("volume_sampled", False)
         job.doc.setdefault("equilibrated", False)
-        job.doc.setdefault("n_runs", 0)
+        job.doc.setdefault("system_initialized", False)
+        job.doc.setdefault("npt_runs", 0)
+        job.doc.setdefault("npt_sample_count", 0)
 
 
 if __name__ == "__main__":
