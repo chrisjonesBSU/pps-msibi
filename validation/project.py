@@ -354,4 +354,4 @@ def run_nvt_longer(job):
         print("Simulation finished.")
 
 if __name__ == "__main__":
-    MyProject().main()
+    MyProject(environment=Fry).main()
