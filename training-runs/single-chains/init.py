@@ -23,6 +23,7 @@ def get_parameters():
     parameters = OrderedDict()
     parameters["num_mols"] = [1]
     parameters["lengths"] = [
+            2,
             20,
             40,
             60,

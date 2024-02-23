@@ -127,7 +127,6 @@ def run(job):
         sim.reference_length *= job.sp.sigma_scale
 
         # Store more unit information in job doc
-        target_box = system.target_box / job.doc.ref_length
         tau_kT = job.doc.dt * job.sp.tau_kT
         job.doc.tau_kT = tau_kT
         job.doc.real_time_step = sim.real_timestep.to("fs").value
@@ -186,4 +185,4 @@ def run_longer(job):
 
 
 if __name__ == "__main__":
-    PPSSingleChain().main()
+    PPSSingleChain(environment=Fry).main()
