@@ -5,5 +5,8 @@ dependencies:
   - flowermd >= 1.2.0
   - signac = 2.1.0
   - signac-flow = 0.26.1
+  - cuda-version = 11.8
+  - more-itertools
+  - jupyter
   - pip:
       - git+https://github.com/cmelab/msibi
