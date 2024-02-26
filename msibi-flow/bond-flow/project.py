@@ -94,7 +94,7 @@ def optimize(job):
                     name=state["name"],
                     kT=single_chain_job.sp.kT,
                     traj_file=gsd_file,
-                    max_frames=state["n_frames"],
+                    n_frames=state["n_frames"],
                     alpha=state["alpha"],
                 )
             )
@@ -112,7 +112,7 @@ def optimize(job):
                                 x0=bond["x0"], x_min=bond["x_min"],
                                 x_max=bond["x_max"])
 
-            opt.add_bond(_bond)
+            opt.add_force(_bond)
 
         opt.run_optimization(n_steps=job.sp.n_steps,
                              n_iterations=job.sp.n_iterations,
