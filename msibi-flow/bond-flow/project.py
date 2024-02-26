@@ -7,10 +7,11 @@ status, execute operations and submit them to a cluster. See also:
 
 """
 
+import os
+
 import signac
 from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
-import os
 
 
 class BondMSIBI(FlowProject):
@@ -27,6 +28,7 @@ class Borah(DefaultSlurmEnvironment):
             "--partition", default="gpu",
             help="Specify the partition to submit to."
         )
+
 
 class Fry(DefaultSlurmEnvironment):
     hostname_pattern = "fry"
@@ -56,7 +58,6 @@ def get_file(job, file_name):
 @BondMSIBI.post(completed)
 def optimize(job):
     from msibi import MSIBI, State, Bond
-    import logging
 
     with job:
         job.doc["done"] = False
@@ -96,7 +97,6 @@ def optimize(job):
                     alpha=state["alpha"],
                 )
             )
-
 
         print("Creating Bond objects...")
         for bond in job.sp.bonds:

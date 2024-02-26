@@ -10,18 +10,19 @@ The result of running this file is the creation of a signac workspace:
     - signac_statepoints.json within each individual statepoint sub-directory.
 """
 
-import signac
 import logging
 from collections import OrderedDict
 from itertools import product
 
+import signac
 
-def get_parameters():
+
+def get_parameters(ordered_dict=OrderedDict()):
     '''Use the listed parameters below to set up
     your MSIBI instructions.
 
     '''
-    parameters = OrderedDict()
+    parameters = ordered_dict
 
     # Optimizer parameters
     parameters["nlist"] = ["Cell"]
@@ -33,47 +34,20 @@ def get_parameters():
     parameters["n_steps"] = [1e5]
     parameters["n_iterations"] = [10]
 
-
     # State parameters
-    parameters["single_chain_path"] = ["/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
+    parameters["single_chain_path"] = [
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
     parameters["states"] = [
-        # Evenly Weighted, with 1.0
         [
             {"name": "A",
-             "kT": 6.37,
-             "target_trajectory": "1.27den-6.37kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
-             },
-
-            {"name": "B",
-             "kT": 4.2,
-             "target_trajectory": "1.27den-4.2kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
-             },
-
-            {"name": "C",
-             "kT": 6.5,
-             "target_trajectory": "single-chain.gsd",
-             "max_frames": 200,
-             "alpha": 1.0,
-             "exclude_bonded": False
-             },
-
-            {"name": "D",
-             "kT": 2.77,
-             "target_trajectory": "1.40den-2.77kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
+             "kT": 7.0,
+             "remove_hydrogens": True,
+             "alpha": 0.6,
+             "n_frames": 100
              },
         ],
 
     ]
-
 
     # Bond parameters
     parameters["head_correction"] = ["linear"]
@@ -92,12 +66,11 @@ def get_parameters():
         ]
     ]
 
-
     return list(parameters.keys()), list(product(*parameters.values()))
 
 
 def main():
-    project = signac.init_project() # Set the signac project name
+    project = signac.init_project()  # Set the signac project name
     param_names, param_combinations = get_parameters()
     # Create the generate jobs
     for params in param_combinations:
@@ -105,6 +78,7 @@ def main():
         job = project.open_job(statepoint)
         job.init()
         job.doc.setdefault("done", False)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
