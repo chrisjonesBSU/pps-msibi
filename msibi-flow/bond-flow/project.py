@@ -10,11 +10,10 @@ status, execute operations and submit them to a cluster. See also:
 import signac
 from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
-from flow.environments.xsede import Bridges2Environment
 import os
 
 
-class MyProject(FlowProject):
+class BondMSIBI(FlowProject):
     pass
 
 
@@ -42,7 +41,7 @@ class Fry(DefaultSlurmEnvironment):
 
 
 # Definition of project-related labels (classification)
-@MyProject.label
+@BondMSIBI.label
 def completed(job):
     return job.doc.get("done")
 
@@ -53,10 +52,10 @@ def get_file(job, file_name):
 
 @directives(executable="python -u")
 @directives(ngpu=1)
-@MyProject.operation
-@MyProject.post(completed)
+@BondMSIBI.operation
+@BondMSIBI.post(completed)
 def optimize(job):
-    from msibi import MSIBI, State, Pair, Bond, Angle, Dihedral
+    from msibi import MSIBI, State, Bond
     import logging
 
     with job:
@@ -64,132 +63,66 @@ def optimize(job):
 
         print("Setting up MSIBI optimizer...")
         opt = MSIBI(
-            integrator=job.sp.integrator,
-            integrator_kwargs=job.doc.integrator_kwargs,
             nlist=job.sp.nlist,
-            nlist_exclusions=job.sp.nlist_exclusions,
+            integrator_method=job.sp.integrator,
+            method_kwargs={},
+            thermostat="MTTK",
+            thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
-            gsd_period=job.sp.gsd_period,
-            n_steps=job.sp.n_steps,
+            gsd_period=job.sp.n_steps // 500,
+            r_cut=job.sp.r_cut,
+            nlist_exclusions=job.sp.nlist_exclusions,
         )
 
         print("Creating State objects...")
+        single_chain_project = signac.get_project(job.sp.single_chain_path)
         for idx, state in enumerate(job.sp.states):
-            alpha = job.sp.state_alphas[idx]
+            single_chain_job = [
+                j for j in single_chain_project.find_jobs(
+                    filter={"lengths": 60,
+                            "kT": state["kT"],
+                            "remove_hydrogens": state["remove_hydrogens"]
+                            }
+                )
+            ][0]
+            gsd_file = single_chain_job.fn(
+                f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
             opt.add_state(
                 State(
                     name=state["name"],
-                    kT=state["kT"],
-                    traj_file=get_file(
-                        job,
-                        f"msibi-state-point-files/{state['target_trajectory']}"
-                    ),
-                    max_frames=state["max_frames"],
-                    target_frames=state["target_frames"],
-                    alpha=alpha,
-                    exclude_bonded=state["exclude_bonded"],
-                    _dir=job.ws
+                    kT=single_chain_job.sp.kT,
+                    traj_file=gsd_file,
+                    max_frames=state["n_frames"],
+                    alpha=state["alpha"],
                 )
             )
 
-        print("Creating Pair objects...")
-        for pair in job.sp.pairs:
-            _pair = Pair(
-                type1=pair["type1"],
-                type2=pair["type2"],
+
+        print("Creating Bond objects...")
+        for bond in job.sp.bonds:
+            _bond = Bond(
+                type1=bond["type1"],
+                type2=bond["type2"],
+                optimize=True,
+                nbins=job.sp.bonds_nbins,
                 head_correction_form=job.sp.head_correction
             )
+            _bond.set_quadratic(k4=bond["k4"], k3=bond["k3"], k2=bond["k2"],
+                                x0=bond["x0"], x_min=bond["x_min"],
+                                x_max=bond["x_max"])
 
-            if pair["form"] == "table":
-                _pair.set_table_potential(**pair["kwargs"])
-            elif pair["form"] == "file":
-                job.doc.pair_form = "file"
-                file_path = get_file(job, pair["kwargs"]["file_path"])
-                _pair.set_from_file(file_path=file_path)
+            opt.add_bond(_bond)
 
-            opt.add_pair(_pair)
+        opt.run_optimization(n_steps=job.sp.n_steps,
+                             n_iterations=job.sp.n_iterations,
+                             backup_trajectories=True)
 
-        if job.sp.bonds is not None:
-            print("Creating Bond objects...")
-            for bond in job.sp.bonds:
-                _bond = Bond(
-                    type1=bond["type1"],
-                    type2=bond["type2"],
-                    head_correction_form=job.sp.head_correction
-                )
-
-                if bond["form"] == "file":
-                    file_path = get_file(job, bond["kwargs"]["file_path"])
-                    _bond.set_from_file(file_path=file_path)
-                elif bond["form"] == "quadratic":
-                    _bond.set_quadratic(**bond["kwargs"])
-
-                opt.add_bond(_bond)
-
-        if job.sp.angles is not None:
-            print("Creating Angle objects...")
-            for angle in job.sp.angles:
-                _angle = Angle(
-                    type1=angle["type1"],
-                    type2=angle["type2"],
-                    type3=angle["type3"],
-                    head_correction_form=job.sp.head_correction
-                )
-
-                if angle["form"] == "file":
-                    file_path = get_file(job, angle["kwargs"]["file_path"])
-                    _angle.set_from_file(file_path)
-                elif angle["form"] == "harmonic":
-                    _angle.set_harmonic(**angle["kwargs"])
-
-                opt.add_angle(_angle)
-
-        if job.sp.dihedrals is not None:
-            print("Creating Dihedral objects...")
-            for dihedral in job.sp.dihedrals:
-                _dihedral = Dihedral(
-                    type1=dihedral["type1"],
-                    type2=dihedral["type2"],
-                    type3=dihedral["type3"],
-                    type4=dihedral["type4"],
-                )
-                if dihedral["form"] == "file":
-                    file_path = get_file(job, dihedral["kwargs"]["file_path"])
-                    _dihedral.set_from_file(file_path)
-                elif dihedral["form"] == "harmonic":
-                    _dihedral.set_harmonic(**dihedral["kwargs"])
-
-                opt.add_dihedral(_dihedral)
-
-        if job.sp.optimize == "bonds":
-            opt.optimize_bonds(
-                n_iterations=job.sp.iterations,
-                smooth=job.sp.smooth,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "angles":
-            opt.optimize_angles(
-                n_iterations=job.sp.iterations,
-                smooth=job.sp.smooth,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "pairs":
-            opt.optimize_pairs(
-                n_iterations=job.sp.iterations,
-                smooth_rdfs=job.sp.smooth,
-                smoothing_window=9,
-                r_switch=job.sp.r_switch,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "dihedrals":
-            opt.optimize_dihedrals(
-                n_iterations=job.sp.iterations,
-                smooth_rdfs=job.sp.smooth,
-                _dir=job.ws
-            )
+        # save the optimized bonds to file
+        for bond in opt.bonds:
+            bond.save_to_file(job.fn(f"{bond.name}.csv"))
 
         job.doc["done"] = True
 
 
 if __name__ == "__main__":
-    MyProject().main()
+    BondMSIBI().main()
