@@ -119,10 +119,12 @@ def optimize(job):
                              backup_trajectories=True)
 
         # save the optimized bonds to file
+        print("saving optimized bonds to file...")
         for bond in opt.bonds:
             bond.save_to_file(job.fn(f"{bond.name}.csv"))
 
         job.doc["done"] = True
+        print("Optimization complete!")
 
 
 if __name__ == "__main__":
