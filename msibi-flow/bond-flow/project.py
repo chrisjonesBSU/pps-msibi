@@ -52,10 +52,11 @@ def get_file(job, file_name):
     return os.path.abspath(os.path.join(job.ws, "..", "..", file_name))
 
 
-@directives(executable="python -u")
-@directives(ngpu=1)
-@BondMSIBI.operation
+
 @BondMSIBI.post(completed)
+@BondMSIBI.operation(
+    directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
+)
 def optimize(job):
     from msibi import MSIBI, State, Bond
 
