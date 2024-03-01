@@ -26,10 +26,8 @@ def get_parameters(ordered_dict=OrderedDict()):
 
     # Optimizer parameters
     parameters["nlist"] = ["Cell"]
-    parameters["integrator"] = ["ConstantVolume"]
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
-    parameters["r_cut"] = [2.5]
     parameters["nlist_exclusions"] = [["bond", "angle"]]
     parameters["n_steps"] = [1e5]
     parameters["n_iterations"] = [10]

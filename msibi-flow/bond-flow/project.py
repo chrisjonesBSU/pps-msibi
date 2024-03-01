@@ -59,26 +59,31 @@ def get_file(job, file_name):
 )
 def optimize(job):
     from msibi import MSIBI, State, Bond
-
+    import hoomd
+    import os
+    
     with job:
         job.doc["done"] = False
-
+        if os.path.exists(job.fn("states")):
+            dir_path = job.fn("states")
+            os.system(f"rm -r {dir_path}")
         print("Setting up MSIBI optimizer...")
         opt = MSIBI(
             nlist=job.sp.nlist,
-            integrator_method=job.sp.integrator,
+            integrator_method=hoomd.md.methods.ConstantVolume,
             method_kwargs={},
-            thermostat="MTTK",
+            thermostat=hoomd.md.methods.thermostats.MTTK,
             thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
             gsd_period=job.sp.n_steps // 500,
-            r_cut=job.sp.r_cut,
             nlist_exclusions=job.sp.nlist_exclusions,
         )
 
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
+        print("found single_chain_project")
         for idx, state in enumerate(job.sp.states):
+            print("state: ", state)
             single_chain_job = [
                 j for j in single_chain_project.find_jobs(
                     filter={"lengths": 60,
@@ -87,8 +92,10 @@ def optimize(job):
                             }
                 )
             ][0]
+            print("found job")
             gsd_file = single_chain_job.fn(
                 f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
+            print(gsd_file)
             opt.add_state(
                 State(
                     name=state["name"],
@@ -106,25 +113,37 @@ def optimize(job):
                 type2=bond["type2"],
                 optimize=True,
                 nbins=job.sp.bonds_nbins,
-                head_correction_form=job.sp.head_correction
+                correction_form=job.sp.head_correction
             )
             _bond.set_quadratic(k4=bond["k4"], k3=bond["k3"], k2=bond["k2"],
                                 x0=bond["x0"], x_min=bond["x_min"],
                                 x_max=bond["x_max"])
 
             opt.add_force(_bond)
+        print("Running Optimization...")
 
         opt.run_optimization(n_steps=job.sp.n_steps,
                              n_iterations=job.sp.n_iterations,
                              backup_trajectories=True)
 
         # save the optimized bonds to file
-        print("saving optimized bonds to file...")
         for bond in opt.bonds:
             bond.save_to_file(job.fn(f"{bond.name}.csv"))
+            bond.plot_potentials(file_path=job.fn(f"{bond.name}_potential.png"))
+            bond.plot_potential_history(file_path=job.fn(f"{bond.name}_potential_history.png"))
 
+        # save plots to file
+        for state in opt.states:
+            for bond in opt.bonds:
+                bond.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{bond.name}_fitscore.png"))
+                bond.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{bond.name}_target_dist.png"))
+                
+                bond.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{bond.name}_dist_comparison.png"))
+                
+        
+        
+        print("Optimization done")
         job.doc["done"] = True
-        print("Optimization complete!")
 
 
 if __name__ == "__main__":
