@@ -106,6 +106,10 @@ def optimize(job):
                 )
             )
 
+        AA_bond = Bond(type1="A", type2="A", optimize=False, nbins=100)
+        AA_bond.set_from_file(file_path="AA_bond.csv")
+        opt.add_force(AA_bond)
+
         print("Creating Bond objects...")
         for bond in job.sp.bonds:
             _bond = Bond(
@@ -128,7 +132,7 @@ def optimize(job):
 
         # save the optimized bonds to file
         for bond in opt.bonds:
-            bond.save_to_file(job.fn(f"{bond.name}.csv"))
+            bond.save_to_file(job.fn(f"{bond.name}_bond.csv"))
             bond.plot_potentials(file_path=job.fn(f"{bond.name}_potential.png"))
             bond.plot_potential_history(file_path=job.fn(f"{bond.name}_potential_history.png"))
 
