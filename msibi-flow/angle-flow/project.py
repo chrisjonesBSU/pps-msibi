@@ -61,6 +61,7 @@ def optimize(job):
     from msibi import MSIBI, State, Bond, Angle
     import hoomd
     import os
+    import numpy as np
 
     with job:
         job.doc["done"] = False
@@ -75,10 +76,9 @@ def optimize(job):
             thermostat=hoomd.md.methods.thermostats.MTTK,
             thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
-            gsd_period=job.sp.n_steps // 500,
+            gsd_period=job.sp.n_steps[0] // 500,
             nlist_exclusions=job.sp.nlist_exclusions,
         )
-
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
         single_chain_job = single_chain_project.open_job(
@@ -105,9 +105,9 @@ def optimize(job):
             type1=job.sp.bonds["type1"],
             type2=job.sp.bonds["type2"],
             optimize=False,
-            nbins=job.sp.bonds_nbins,
+            nbins=bond_job.sp.bonds_nbins,
         )
-        AA_bond.set_from_file(file_apth=bond_job.fn(job.sp.bonds["file_path"]))
+        AA_bond.set_from_file(file_path=bond_job.fn(job.sp.bonds["file_path"]))
         opt.add_force(AA_bond)
 
         print("Creating Angle objects...")
@@ -143,9 +143,13 @@ def optimize(job):
         AAA_angle.save_potential_history(
             job.fn(f"{AAA_angle.name}_potential_history.npy"))
         AAA_angle.plot_potentials(
-            file_path=job.fn(f"{AAA_angle.name}_potential.png"))
+            file_path=job.fn(f"{AAA_angle.name}_potential.png"),
+            xlim=(1, np.pi), ylim=(0, 70)
+        )
         AAA_angle.plot_potential_history(
-            file_path=job.fn(f"{AAA_angle.name}_potential_history.png"))
+            file_path=job.fn(f"{AAA_angle.name}_potential_history.png"),
+            xlim=(1, np.pi), ylim=(-5, 40)
+        )
 
         # save plots to file
         for state in opt.states:

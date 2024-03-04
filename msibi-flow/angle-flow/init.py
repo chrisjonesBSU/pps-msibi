@@ -70,11 +70,10 @@ def get_parameters(ordered_dict=OrderedDict()):
     # Bond parameters
     parameters["bond_project_path"] = ["/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"]
     parameters["bond_job_id"] = ["ba28bd502cec3ae0056aef66e545b069"]
-    parameters["bonds_nbins"] = [100]
     parameters["bonds"] = [
             {"type1": "A",
              "type2": "A",
-             "file_path": "AA_bond.csv",
+             "file_path": "A-A_bond.csv",
              },
     ]
 
