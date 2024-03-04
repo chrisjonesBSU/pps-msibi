@@ -14,6 +14,7 @@ import logging
 from collections import OrderedDict
 from itertools import product
 
+import numpy as np
 import signac
 
 
@@ -29,7 +30,7 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
     parameters["nlist_exclusions"] = [["bond", "angle"]]
-    parameters["n_steps"] = [1e5]
+    parameters["n_steps"] = [2e5]
     parameters["n_iterations"] = [10]
 
     # State parameters
@@ -47,8 +48,27 @@ def get_parameters(ordered_dict=OrderedDict()):
 
     ]
 
-    # Bond parameters
+    # Angle parameters
     parameters["head_correction"] = ["linear"]
+    parameters["angles_nbins"] = [100]
+    parameters["angles"] = [
+        [
+            {"type1": "A",
+             "type2": "A",
+             "type3": "A",
+             "x0": 2.2,
+             "x_min": 0,
+             "x_max": np.pi,
+             "k4": 0,
+             "k3": 0,
+             "k2": 200
+             },
+        ]
+    ]
+    parameters["smoothing_window"] = [5]
+    # Bond parameters
+    parameters["bond_project_path"] = ["/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"]
+    parameters["bond_job_id"] = ["ba28bd502cec3ae0056aef66e545b069"]
     parameters["bonds_nbins"] = [100]
     parameters["bonds"] = [
         [

@@ -58,7 +58,7 @@ def get_file(job, file_name):
     directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
 )
 def optimize(job):
-    from msibi import MSIBI, State, Bond
+    from msibi import MSIBI, State, Bond, Angle
     import hoomd
     import os
 
@@ -81,7 +81,6 @@ def optimize(job):
 
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
-        print("found single_chain_project")
         for idx, state in enumerate(job.sp.states):
             print("state: ", state)
             single_chain_job = [
@@ -92,10 +91,8 @@ def optimize(job):
                             }
                 )
             ][0]
-            print("found job")
             gsd_file = single_chain_job.fn(
                 f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
-            print(gsd_file)
             opt.add_state(
                 State(
                     name=state["name"],
@@ -107,39 +104,55 @@ def optimize(job):
             )
 
         print("Creating Bond objects...")
+        bond_project = signac.get_project(job.sp.bond_project_path)
+        bond_job = bond_project.open_job(id=job.sp.bond_job_id)
         for bond in job.sp.bonds:
             _bond = Bond(
                 type1=bond["type1"],
                 type2=bond["type2"],
-                optimize=True,
+                optimize=False,
                 nbins=job.sp.bonds_nbins,
-                correction_form=job.sp.head_correction
             )
-            _bond.set_quadratic(k4=bond["k4"], k3=bond["k3"], k2=bond["k2"],
-                                x0=bond["x0"], x_min=bond["x_min"],
-                                x_max=bond["x_max"])
-
+            _bond.set_from_file(file_apth=bond_job.fn(bond["file_path"]))
             opt.add_force(_bond)
-        print("Running Optimization...")
 
+        print("Creating Angle objects...")
+        for angle in job.sp.angles:
+            _angle = Angle(
+                type1=angle["type1"],
+                type2=angle["type2"],
+                type3=angle["type3"],
+                optimize=True,
+                nbins=job.sp.angles_nbins,
+            )
+            _angle.set_quadratic(
+                x0=angle["x0"],
+                x_min=angle["x_min"],
+                x_max=angle["x_max"],
+                k2=angle["k2"],
+                k3=angle["k3"],
+                k4=angle["k4"],
+            )
+            opt.add_force(_angle)
+
+        print("Running Optimization...")
         opt.run_optimization(n_steps=job.sp.n_steps,
                              n_iterations=job.sp.n_iterations,
                              backup_trajectories=True)
 
-        # save the optimized bonds to file
-        for bond in opt.bonds:
-            bond.save_to_file(job.fn(f"{bond.name}.csv"))
-            bond.plot_potentials(file_path=job.fn(f"{bond.name}_potential.png"))
-            bond.plot_potential_history(file_path=job.fn(f"{bond.name}_potential_history.png"))
+        # save the optimized angles to file
+        for angle in opt.angles:
+            angle.save_to_file(job.fn(f"{angle.name}_angle.csv"))
+            angle.plot_potentials(file_path=job.fn(f"{angle.name}_potential.png"))
+            angle.plot_potential_history(file_path=job.fn(f"{angle.name}_potential_history.png"))
 
         # save plots to file
         for state in opt.states:
-            for bond in opt.bonds:
-                bond.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{bond.name}_fitscore.png"))
-                bond.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{bond.name}_target_dist.png"))
+            for angle in opt.angles:
+                angle.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{angle.name}_fitscore.png"))
+                angle.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{angle.name}_target_dist.png"))
 
-                bond.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{bond.name}_dist_comparison.png"))
-
+                angle.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{angle.name}_dist_comparison.png"))
 
 
         print("Optimization done")
@@ -147,4 +160,4 @@ def optimize(job):
 
 
 if __name__ == "__main__":
-    AngleMSIBI().main()
+    AngleMSIBI(environment=Fry).main()
