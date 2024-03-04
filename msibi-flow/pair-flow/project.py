@@ -7,14 +7,14 @@ status, execute operations and submit them to a cluster. See also:
 
 """
 
+import os
+
 import signac
 from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
-from flow.environments.xsede import Bridges2Environment
-import os
 
 
-class MyProject(FlowProject):
+class PairMSIBI(FlowProject):
     pass
 
 
@@ -29,6 +29,7 @@ class Borah(DefaultSlurmEnvironment):
             help="Specify the partition to submit to."
         )
 
+
 class Fry(DefaultSlurmEnvironment):
     hostname_pattern = "fry"
     template = "fry.sh"
@@ -42,7 +43,7 @@ class Fry(DefaultSlurmEnvironment):
 
 
 # Definition of project-related labels (classification)
-@MyProject.label
+@PairMSIBI.label
 def completed(job):
     return job.doc.get("done")
 
@@ -51,145 +52,110 @@ def get_file(job, file_name):
     return os.path.abspath(os.path.join(job.ws, "..", "..", file_name))
 
 
-@directives(executable="python -u")
-@directives(ngpu=1)
-@MyProject.operation
-@MyProject.post(completed)
+
+@PairMSIBI.post(completed)
+@PairMSIBI.operation(
+    directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
+)
 def optimize(job):
-    from msibi import MSIBI, State, Pair, Bond, Angle, Dihedral
-    import logging
+    from msibi import MSIBI, State, Bond, Angle, Pair
+    import hoomd
+    import os
 
     with job:
         job.doc["done"] = False
-
+        if os.path.exists(job.fn("states")):
+            dir_path = job.fn("states")
+            os.system(f"rm -r {dir_path}")
         print("Setting up MSIBI optimizer...")
         opt = MSIBI(
-            integrator=job.sp.integrator,
-            integrator_kwargs=job.doc.integrator_kwargs,
             nlist=job.sp.nlist,
-            nlist_exclusions=job.sp.nlist_exclusions,
+            integrator_method=hoomd.md.methods.ConstantVolume,
+            method_kwargs={},
+            thermostat=hoomd.md.methods.thermostats.MTTK,
+            thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
-            gsd_period=job.sp.gsd_period,
-            n_steps=job.sp.n_steps,
+            gsd_period=job.sp.n_steps // 500,
+            nlist_exclusions=job.sp.nlist_exclusions,
         )
 
         print("Creating State objects...")
+        bulk_project = signac.get_project(job.sp.bulk_path)
         for idx, state in enumerate(job.sp.states):
-            alpha = job.sp.state_alphas[idx]
+            print("state: ", state)
+            bulk_job = bulk_project.open_job(id=state["job_id"])
+            gsd_file = bulk_job.fn("last-npt-cg.gsd")
             opt.add_state(
                 State(
                     name=state["name"],
                     kT=state["kT"],
-                    traj_file=get_file(
-                        job,
-                        f"msibi-state-point-files/{state['target_trajectory']}"
-                    ),
-                    max_frames=state["max_frames"],
-                    target_frames=state["target_frames"],
-                    alpha=alpha,
+                    traj_file=gsd_file,
+                    n_frames=state["n_frames"],
+                    alpha=state["alpha"],
                     exclude_bonded=state["exclude_bonded"],
-                    _dir=job.ws
                 )
             )
+
+        print("Creating Bond objects...")
+        bond_project = signac.get_project(job.sp.bond_project_path)
+        bond_job = bond_project.open_job(id=job.sp.bond_job_id)
+        for bond in job.sp.bonds:
+            _bond = Bond(
+                type1=bond["type1"],
+                type2=bond["type2"],
+                optimize=False,
+                nbins=job.sp.bonds_nbins,
+            )
+            _bond.set_from_file(file_apth=bond_job.fn(bond["file_path"]))
+            opt.add_force(_bond)
+
+        print("Creating Angle objects...")
+        for angle in job.sp.angles:
+            _angle = Angle(
+                type1=angle["type1"],
+                type2=angle["type2"],
+                type3=angle["type3"],
+                optimize=False,
+                nbins=job.sp.angles_nbins,
+            )
+            _angle.set_from_file(file_apth=angle["file_path"])
+            opt.add_force(_angle)
 
         print("Creating Pair objects...")
         for pair in job.sp.pairs:
             _pair = Pair(
                 type1=pair["type1"],
                 type2=pair["type2"],
-                head_correction_form=job.sp.head_correction
+                r_cut=pair["r_cut"],
+                optimize=True,
+                nbins=job.sp.pairs_nbins,
             )
+            _pair.set_lj(epsilon=pair["epsilon"], sigma=pair["sigma"], r_cut=pair["r_cut"])
+            opt.add_force(_pair)
 
-            if pair["form"] == "table":
-                _pair.set_table_potential(**pair["kwargs"])
-            elif pair["form"] == "file":
-                job.doc.pair_form = "file"
-                file_path = get_file(job, pair["kwargs"]["file_path"])
-                _pair.set_from_file(file_path=file_path)
+        print("Running Optimization...")
+        opt.run_optimization(n_steps=job.sp.n_steps,
+                             n_iterations=job.sp.n_iterations,
+                             backup_trajectories=True)
 
-            opt.add_pair(_pair)
+        # save the optimized angles to file
+        for pair in opt.pairs:
+            pair.save_to_file(job.fn(f"{pair.name}_pair.csv"))
+            pair.plot_potentials(file_path=job.fn(f"{pair.name}_potential.png"))
+            pair.plot_potential_history(file_path=job.fn(f"{pair.name}_potential_history.png"))
 
-        if job.sp.bonds is not None:
-            print("Creating Bond objects...")
-            for bond in job.sp.bonds:
-                _bond = Bond(
-                    type1=bond["type1"],
-                    type2=bond["type2"],
-                    head_correction_form=job.sp.head_correction
-                )
+        # save plots to file
+        for state in opt.states:
+            for pair in opt.pairs:
+                pair.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{pair.name}_fitscore.png"))
+                pair.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{pair.name}_target_dist.png"))
 
-                if bond["form"] == "file":
-                    file_path = get_file(job, bond["kwargs"]["file_path"])
-                    _bond.set_from_file(file_path=file_path)
-                elif bond["form"] == "quadratic":
-                    _bond.set_quadratic(**bond["kwargs"])
+                pair.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{pair.name}_dist_comparison.png"))
 
-                opt.add_bond(_bond)
 
-        if job.sp.angles is not None:
-            print("Creating Angle objects...")
-            for angle in job.sp.angles:
-                _angle = Angle(
-                    type1=angle["type1"],
-                    type2=angle["type2"],
-                    type3=angle["type3"],
-                    head_correction_form=job.sp.head_correction
-                )
-
-                if angle["form"] == "file":
-                    file_path = get_file(job, angle["kwargs"]["file_path"])
-                    _angle.set_from_file(file_path)
-                elif angle["form"] == "harmonic":
-                    _angle.set_harmonic(**angle["kwargs"])
-
-                opt.add_angle(_angle)
-
-        if job.sp.dihedrals is not None:
-            print("Creating Dihedral objects...")
-            for dihedral in job.sp.dihedrals:
-                _dihedral = Dihedral(
-                    type1=dihedral["type1"],
-                    type2=dihedral["type2"],
-                    type3=dihedral["type3"],
-                    type4=dihedral["type4"],
-                )
-                if dihedral["form"] == "file":
-                    file_path = get_file(job, dihedral["kwargs"]["file_path"])
-                    _dihedral.set_from_file(file_path)
-                elif dihedral["form"] == "harmonic":
-                    _dihedral.set_harmonic(**dihedral["kwargs"])
-
-                opt.add_dihedral(_dihedral)
-
-        if job.sp.optimize == "bonds":
-            opt.optimize_bonds(
-                n_iterations=job.sp.iterations,
-                smooth=job.sp.smooth,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "angles":
-            opt.optimize_angles(
-                n_iterations=job.sp.iterations,
-                smooth=job.sp.smooth,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "pairs":
-            opt.optimize_pairs(
-                n_iterations=job.sp.iterations,
-                smooth_rdfs=job.sp.smooth,
-                smoothing_window=9,
-                r_switch=job.sp.r_switch,
-                _dir=job.ws
-            )
-        elif job.sp.optimize == "dihedrals":
-            opt.optimize_dihedrals(
-                n_iterations=job.sp.iterations,
-                smooth_rdfs=job.sp.smooth,
-                _dir=job.ws
-            )
-
+        print("Optimization done")
         job.doc["done"] = True
 
 
 if __name__ == "__main__":
-    MyProject().main()
+    PairMSIBI(environment=Fry).main()

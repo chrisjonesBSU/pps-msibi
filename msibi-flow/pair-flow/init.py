@@ -10,10 +10,11 @@ The result of running this file is the creation of a signac workspace:
     - signac_statepoints.json within each individual statepoint sub-directory.
 """
 
-import signac
 import logging
 from collections import OrderedDict
 from itertools import product
+
+import signac
 
 
 def get_parameters():
@@ -22,189 +23,86 @@ def get_parameters():
 
     '''
     parameters = OrderedDict()
-    parameters["head_correction"] = ["linear"]
-    parameters["smooth"] = [True]  # Whether or not to smooth the distributions
-    parameters["integrator"] = [
-        "hoomd.md.integrate.nvt"]  # Hoomd integrator type
-    parameters["integrator_kwargs"] = [
-        {"tau": 0.01}]  # dict of integrator kwargs
-    parameters["nlist"] = ["hoomd.md.nlist.cell"]
-    parameters["nlist_exclusions"] = [["1-2", "1-3"]]
-    parameters["dt"] = [0.0001]
-    parameters["gsd_period"] = [50e3]  # Num of steps between gsd snapshots
-    parameters["iterations"] = [20, 60]  # Num of MSIBI iterations to perform
-    parameters["state_alphas"] = [
-        [0.1, 0.1, 0.1, 0.1],
-        [0.2, 0.2, 0.1, 0.2],
-        [0.3, 0.3, 0.1, 0.3],
-        [0.5, 0.5, 0.1, 0.5],
-        [1, 1, 0.25, 1],
-        [1, 1, 0.1, 1],
-    ]
-    parameters["n_steps"] = [
-        # 5e5,
-        1e6,
-        # 5e6,
-        # 1e7
-    ]
-    parameters["optimize"] = ["pairs"]  # Choose which potential to optimize
 
-    # These parameters below are only needed when optimizing pair potentials
-    parameters["rdf_exclude_bonded"] = [True]  # Exclude pairs on same molecule
-    parameters["r_switch"] = [None]  # Distance value to apply tail correction
+    # Optimizer parameters
+    parameters["nlist"] = ["Cell"]
+    parameters["thermostat_tau"] = [0.03]
+    parameters["dt"] = [0.0003]
+    parameters["nlist_exclusions"] = [["bond", "angle"]]
+    parameters["n_steps"] = [1e6]
+    parameters["n_iterations"] = [10]
 
-    # Add state points to use during MSIBI
+    # State parameters
+    parameters["bulk_path"] = [
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/validation"]
     parameters["states"] = [
-        # Evenly Weighted, with 1.0
         [
-            {"name": "A",
-             "kT": 6.37,
-             "target_trajectory": "1.27den-6.37kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
-             },
-
-            {"name": "B",
-             "kT": 4.2,
-             "target_trajectory": "1.27den-4.2kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
-             },
-
-            {"name": "C",
-             "kT": 6.5,
-             "target_trajectory": "single-chain.gsd",
-             "max_frames": 200,
-             "alpha": 1.0,
-             "exclude_bonded": False
-             },
-
-            {"name": "D",
-             "kT": 2.77,
-             "target_trajectory": "1.40den-2.77kT-ua.gsd",
-             "max_frames": 20,
-             "alpha": 1.0,
-             "exclude_bonded": True
+            {"name": "ordered",
+             "kT": 1.0,
+             "alpha": 0.6,
+             "n_frames": 100,
+             "exclude_bonded": True,
+             "job_id": "100888a4bbe8114d13b7c682ba77a678"
              },
         ],
 
     ]
 
-    # Add parameters needed to create Pair objects
+    # Pair parameters
+    parameters["head_correction"] = ["linear"]
+    parameters["pairs_nbins"] = [100]
     parameters["pairs"] = [
         [
-            {"type1": "E",
-             "type2": "E",
-             "form": "table",
-             "kwargs": {
-                 "n_points": 101,
-                 "epsilon": 1.5,
-                 "sigma": 2,
-                 "r_max": 5.0,
-                 "r_min": 1e-3
-             }
+            {"type1": "A",
+             "type2": "A",
+             "r_cut": 4.0,
+             "exclude_bonded": True,
+             "epsilon": 1.0,
+             "sigma": 1.5,
              },
-
-            {"type1": "E",
-             "type2": "K",
-             "form": "table",
-             "kwargs": {
-                 "n_points": 101,
-                 "epsilon": 1.5,
-                 "sigma": 2,
-                 "r_max": 5.0,
-                 "r_min": 1e-3
-             }
-             },
-
-            {"type1": "K",
-             "type2": "K",
-             "form": "table",
-             "kwargs": {
-                 "n_points": 101,
-                 "epsilon": 1.5,
-                 "sigma": 2,
-                 "r_max": 5.0,
-                 "r_min": 1e-3
-             }
-             },
-        ],
-
-    ]
-
-    # Add parameters needed to create Bond and Angle objects
-    parameters["bonds"] = [
-        [
-            {"type1": "E",
-             "type2": "K",
-             "form": "file",
-             "kwargs": {"file_path": "E-K_smoothed.txt"}
-             },
-
-            {"type1": "K",
-             "type2": "K",
-             "form": "file",
-             "kwargs": {"file_path": "K-K_smoothed.txt"}
-             }
         ]
     ]
-
+    # Angle parameters
+    parameters["angle_project_path"] = [
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/angle-flow"]
+    parameters["angle_job_id"] = [""]
+    parameters["angles_nbins"] = [100]
     parameters["angles"] = [
         [
-            {"type1": "E",
-             "type2": "K",
-             "type3": "K",
-             "form": "file",
-             "kwargs": {"file_path": "E-K-K_smoothed-1.0.txt"}
-             },
-
-            {"type1": "K",
-             "type2": "E",
-             "type3": "K",
-             "form": "file",
-             "kwargs": {"file_path": "K-E-K_smoothed.txt"}
+            {"type1": "A",
+             "type2": "A",
+             "type3": "A",
+             "file_path": "AAA_angle.csv",
              },
         ]
     ]
 
-    parameters["dihedrals"] = [
-
-        None,
+    # Bond parameters
+    parameters["bond_project_path"] = [
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"]
+    parameters["bond_job_id"] = ["ba28bd502cec3ae0056aef66e545b069"]
+    parameters["bonds_nbins"] = [100]
+    parameters["bonds"] = [
         [
-            {"type1": "E",
-             "type2": "K",
-             "type3": "K",
-             "type4": "E",
-             "form": "harmonic",
-             "kwargs": {"phi0": 0, "k": "20", "d": -1, "n": 1}
+            {"type1": "A",
+             "type2": "A",
+             "file_path": "AA_bond.csv",
              },
-
-            {"type1": "K",
-             "type2": "E",
-             "type3": "K",
-             "type4": "K",
-             "form": "harmonic",
-             "kwargs": {"phi0": 0, "k": "13", "d": -1, "n": 1}
-             },
-
         ]
     ]
+
     return list(parameters.keys()), list(product(*parameters.values()))
 
 
 def main():
-    project = signac.init_project("msibi-chain")
+    project = signac.init_project()  # Set the signac project name
     param_names, param_combinations = get_parameters()
     # Create the generate jobs
     for params in param_combinations:
-        parent_statepoint = dict(zip(param_names, params))
-        parent_job = project.open_job(parent_statepoint)
-        parent_job.init()
-        parent_job.doc.setdefault("integrator_kwargs",
-                                  parent_job.sp.integrator_kwargs)
-    project.write_statepoints()
+        statepoint = dict(zip(param_names, params))
+        job = project.open_job(statepoint)
+        job.init()
+        job.doc.setdefault("done", False)
 
 
 if __name__ == "__main__":
