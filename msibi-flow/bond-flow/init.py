@@ -25,20 +25,23 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters = ordered_dict
 
     # Optimizer parameters
-    parameters["nlist"] = ["Cell"]
+    parameters["nlist"] = ["hoomd.md.nlist.Cell"]
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
     parameters["nlist_exclusions"] = [["bond", "angle"]]
-    parameters["n_steps"] = [1e5]
-    parameters["n_iterations"] = [10]
+    parameters["n_steps"] = [(2e5, 4e5)]
+    parameters["state_alphas"] = [(0.6, 0.3)]
+    parameters["n_iterations"] = [(5, 3)]
 
     # State parameters
     parameters["single_chain_path"] = [
-        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"
+    ]
+    parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
+    parameters["cg_mapping"] = ["c1cc(S)ccc1"]
     parameters["states"] = [
         [
             {"name": "A",
-             "kT": 7.0,
              "remove_hydrogens": True,
              "alpha": 0.6,
              "n_frames": 100
@@ -49,17 +52,17 @@ def get_parameters(ordered_dict=OrderedDict()):
 
     # Bond parameters
     parameters["head_correction"] = ["linear"]
-    parameters["bonds_nbins"] = [100]
+    parameters["bonds_nbins"] = [60]
     parameters["bonds"] = [
         [
             {"type1": "A",
              "type2": "A",
              "x0": 1.5,
              "x_min": 0,
-             "x_max": 4.0,
+             "x_max": 3.0,
              "k4": 0,
              "k3": 0,
-             "k2": 100
+             "k2": 400
              },
         ]
     ]
