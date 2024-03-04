@@ -38,6 +38,7 @@ def get_parameters(ordered_dict=OrderedDict()):
         "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"
     ]
     parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
+    parameters["cg_file_name"] = ["cg-trajectory0.gsd"]
     parameters["states"] = [
         [
             {"name": "A",
@@ -51,7 +52,7 @@ def get_parameters(ordered_dict=OrderedDict()):
 
     # Bond parameters
     parameters["head_correction"] = ["linear"]
-    parameters["bonds_nbins"] = [60]
+    parameters["nbins"] = [60]
     parameters["bonds"] = [
         [
             {"type1": "A",
