@@ -81,7 +81,6 @@ def optimize(job):
 
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
-        print("found single_chain_project")
         for idx, state in enumerate(job.sp.states):
             print("state: ", state)
             single_chain_job = [
@@ -92,10 +91,8 @@ def optimize(job):
                             }
                 )
             ][0]
-            print("found job")
             gsd_file = single_chain_job.fn(
                 f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
-            print(gsd_file)
             opt.add_state(
                 State(
                     name=state["name"],
@@ -151,4 +148,4 @@ def optimize(job):
 
 
 if __name__ == "__main__":
-    BondMSIBI().main()
+    BondMSIBI(environment=Fry).main()
