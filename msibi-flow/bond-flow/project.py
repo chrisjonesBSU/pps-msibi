@@ -10,7 +10,7 @@ status, execute operations and submit them to a cluster. See also:
 import os
 
 import signac
-from flow import FlowProject, directives
+from flow import FlowProject
 from flow.environment import DefaultSlurmEnvironment
 
 
@@ -52,7 +52,6 @@ def get_file(job, file_name):
     return os.path.abspath(os.path.join(job.ws, "..", "..", file_name))
 
 
-
 @BondMSIBI.post(completed)
 @BondMSIBI.operation(
     directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
@@ -61,7 +60,7 @@ def optimize(job):
     from msibi import MSIBI, State, Bond
     import hoomd
     import os
-    
+
     with job:
         if os.path.exists(job.fn("states")):
             dir_path = job.fn("states")
@@ -81,7 +80,7 @@ def optimize(job):
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
         single_chain_job = single_chain_project.open_job(
-                id=job.sp.single_chain_job_id
+            id=job.sp.single_chain_job_id
         )
         job.doc.target_state_path = single_chain_job.path
         for idx, state in enumerate(job.sp.states):
@@ -89,45 +88,55 @@ def optimize(job):
             gsd_file = single_chain_job.fn(
                 f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
             state = State(
-                    name=state["name"],
-                    kT=single_chain_job.sp.kT,
-                    traj_file=gsd_file,
-                    n_frames=state["n_frames"],
-                    alpha=job.sp.state_alphas[0],
-                )
+                name=state["name"],
+                kT=single_chain_job.sp.kT,
+                traj_file=gsd_file,
+                n_frames=state["n_frames"],
+                alpha=job.sp.state_alphas[0],
+            )
             opt.add_state(state)
 
         AA_bond = Bond(type1="A", type2="A", optimize=True, nbins=job.sp.nbins)
         AA_bond.set_quadractic(
-                x0=job.sp.bonds["x0"],
-                x_min=job.sp.bonds["x_min"],
-                x_max=job.sp.bonds["x_max"],
-                k2=job.sp.bonds["k2"],
-                k3=job.sp.bonds["k3"],
-                k4=job.sp.bonds["k4"],
+            x0=job.sp.bonds["x0"],
+            x_min=job.sp.bonds["x_min"],
+            x_max=job.sp.bonds["x_max"],
+            k2=job.sp.bonds["k2"],
+            k3=job.sp.bonds["k3"],
+            k4=job.sp.bonds["k4"],
         )
         opt.add_force(AA_bond)
 
         print("Running Optimization...")
 
-        for n_iterations, n_steps, alpha = zip(job.sp.n_iterations, job.sp.n_steps, job.sp.state_alphas):
+        for n_iterations, n_steps, alpha in zip(job.sp.n_iterations,
+                                                job.sp.n_steps,
+                                                job.sp.state_alphas):
             state.alpha = alpha
-            opt.run_optimization(n_steps=n_steps, n_iterations=n_iterations, backup_trajectories=True)
+            opt.run_optimization(n_steps=n_steps, n_iterations=n_iterations,
+                                 backup_trajectories=True)
             AA_bond.smooth_potential()
 
-
-
         # save the optimized bonds to file
-        AA_bond.save_to_file(job.fn(f"{bond.name}_bond.csv"))
-        AA_bond.plot_potentials(file_path=job.fn(f"{bond.name}_potential.png"))
-        AA_bond.plot_potential_history(file_path=job.fn(f"{bond.name}_potential_history.png"))
+        AA_bond.save_potential(job.fn(f"{AA_bond.name}_bond.csv"))
+        AA_bond.save_potential_history(
+            job.fn(f"{AA_bond.name}_bond_potential_history.npy"))
+        AA_bond.plot_potentials(
+            file_path=job.fn(f"{AA_bond.name}_potential.png"))
+        AA_bond.plot_potential_history(
+            file_path=job.fn(f"{AA_bond.name}_potential_history.png"))
 
         # save plots to file
         for state in opt.states:
-                AA_bond.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{bond.name}_fitscore.png"))
-                AA_bond.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{bond.name}_target_dist.png"))
-                AA_bond.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{bond.name}_dist_comparison.png"))
-                
+            AA_bond.save_state_data(state=state, file_path=job.fn(
+                f"state_{state.name}_bond_{AA_bond.name}_data.npz"))
+            AA_bond.plot_fit_scores(state=state, file_path=job.fn(
+                f"{state.name}_{AA_bond.name}_fitscore.png"))
+            AA_bond.plot_target_distribution(state=state, file_path=job.fn(
+                f"{state.name}_{AA_bond.name}_target_dist.png"))
+            AA_bond.plot_distribution_comparison(state=state, file_path=job.fn(
+                f"{state.name}_{AA_bond.name}_dist_comparison.png"))
+
         print("Optimization done")
         job.doc["done"] = True
 
