@@ -52,7 +52,7 @@ def get_parameters(ordered_dict=OrderedDict()):
 
     # Bond parameters
     parameters["head_correction"] = ["linear"]
-    parameters["nbins"] = [60]
+    parameters["bonds_nbins"] = [60]
     parameters["bonds"] = [
             {"type1": "A",
              "type2": "A",

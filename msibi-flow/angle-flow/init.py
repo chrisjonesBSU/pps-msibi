@@ -30,19 +30,21 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
     parameters["nlist_exclusions"] = [["bond", "angle"]]
-    parameters["n_steps"] = [2e5]
-    parameters["n_iterations"] = [10]
+    parameters["n_steps"] = [(2e5, 2e5)]
+    parameters["state_alphas"] = [(0.6, 0.4)]
+    parameters["n_iterations"] = [(5, 5)]
 
     # State parameters
     parameters["single_chain_path"] = [
         "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
+    parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
     parameters["states"] = [
         [
             {"name": "A",
-             "kT": 7.0,
              "remove_hydrogens": True,
              "alpha": 0.6,
-             "n_frames": 100
+             "n_frames": 100,
+             "cg_file_name": "target_1monomer_per_bead.gsd"
              },
         ],
 
@@ -52,7 +54,6 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["head_correction"] = ["linear"]
     parameters["angles_nbins"] = [100]
     parameters["angles"] = [
-        [
             {"type1": "A",
              "type2": "A",
              "type3": "A",
@@ -61,9 +62,9 @@ def get_parameters(ordered_dict=OrderedDict()):
              "x_max": np.pi,
              "k4": 0,
              "k3": 0,
-             "k2": 200
+             "k2": 200,
+             "smoothing_window": 5,
              },
-        ]
     ]
     parameters["smoothing_window"] = [5]
     # Bond parameters
@@ -71,12 +72,10 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["bond_job_id"] = ["ba28bd502cec3ae0056aef66e545b069"]
     parameters["bonds_nbins"] = [100]
     parameters["bonds"] = [
-        [
             {"type1": "A",
              "type2": "A",
              "file_path": "AA_bond.csv",
              },
-        ]
     ]
 
     return list(parameters.keys()), list(product(*parameters.values()))

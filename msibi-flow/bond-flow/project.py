@@ -95,7 +95,9 @@ def optimize(job):
             )
             opt.add_state(state)
 
-        AA_bond = Bond(type1="A", type2="A", optimize=True, nbins=job.sp.nbins)
+        AA_bond = Bond(type1=job.sp.bonds["type1"], type2=job.sp.bonds["type2"],
+                       optimize=True,
+                       nbins=job.sp.bonds_nbins)
         AA_bond.set_quadratic(
             x0=job.sp.bonds["x0"],
             x_min=job.sp.bonds["x_min"],
@@ -119,7 +121,7 @@ def optimize(job):
         # save the optimized bonds to file
         AA_bond.save_potential(job.fn(f"{AA_bond.name}_bond.csv"))
         AA_bond.save_potential_history(
-            job.fn(f"{AA_bond.name}_bond_potential_history.npy"))
+            job.fn(f"{AA_bond.name}_potential_history.npy"))
         AA_bond.plot_potentials(
             file_path=job.fn(f"{AA_bond.name}_potential.png"))
         AA_bond.plot_potential_history(

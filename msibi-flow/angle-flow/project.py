@@ -81,79 +81,83 @@ def optimize(job):
 
         print("Creating State objects...")
         single_chain_project = signac.get_project(job.sp.single_chain_path)
+        single_chain_job = single_chain_project.open_job(
+            id=job.sp.single_chain_job_id
+        )
+        job.doc.target_state_path = single_chain_job.path
         for idx, state in enumerate(job.sp.states):
             print("state: ", state)
-            single_chain_job = [
-                j for j in single_chain_project.find_jobs(
-                    filter={"lengths": 60,
-                            "kT": state["kT"],
-                            "remove_hydrogens": state["remove_hydrogens"]
-                            }
-                )
-            ][0]
-            gsd_file = single_chain_job.fn(
-                f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
-            opt.add_state(
-                State(
-                    name=state["name"],
-                    kT=single_chain_job.sp.kT,
-                    traj_file=gsd_file,
-                    n_frames=state["n_frames"],
-                    alpha=state["alpha"],
-                )
+            gsd_file = single_chain_job.fn(state["cg_file_name"])
+            state = State(
+                name=state["name"],
+                kT=single_chain_job.sp.kT,
+                traj_file=gsd_file,
+                n_frames=state["n_frames"],
+                alpha=job.sp.state_alphas[0],
             )
+            opt.add_state(state)
 
         print("Creating Bond objects...")
         bond_project = signac.get_project(job.sp.bond_project_path)
         bond_job = bond_project.open_job(id=job.sp.bond_job_id)
-        for bond in job.sp.bonds:
-            _bond = Bond(
-                type1=bond["type1"],
-                type2=bond["type2"],
-                optimize=False,
-                nbins=job.sp.bonds_nbins,
-            )
-            _bond.set_from_file(file_apth=bond_job.fn(bond["file_path"]))
-            opt.add_force(_bond)
+
+        AA_bond = Bond(
+            type1=job.sp.bonds["type1"],
+            type2=job.sp.bonds["type2"],
+            optimize=False,
+            nbins=job.sp.bonds_nbins,
+        )
+        AA_bond.set_from_file(file_apth=bond_job.fn(job.sp.bonds["file_path"]))
+        opt.add_force(AA_bond)
 
         print("Creating Angle objects...")
-        for angle in job.sp.angles:
-            _angle = Angle(
-                type1=angle["type1"],
-                type2=angle["type2"],
-                type3=angle["type3"],
-                optimize=True,
-                nbins=job.sp.angles_nbins,
-            )
-            _angle.set_quadratic(
-                x0=angle["x0"],
-                x_min=angle["x_min"],
-                x_max=angle["x_max"],
-                k2=angle["k2"],
-                k3=angle["k3"],
-                k4=angle["k4"],
-            )
-            opt.add_force(_angle)
+
+        AAA_angle = Angle(
+            type1=job.sp.angles["type1"],
+            type2=job.sp.angles["type2"],
+            type3=job.sp.angles["type3"],
+            optimize=True,
+            nbins=job.sp.angles_nbins,
+        )
+        AAA_angle.set_quadratic(
+            x0=job.sp.angles["x0"],
+            x_min=job.sp.angles["x_min"],
+            x_max=job.sp.angles["x_max"],
+            k2=job.sp.angles["k2"],
+            k3=job.sp.angles["k3"],
+            k4=job.sp.angles["k4"],
+        )
+        AAA_angle.smoothing_window = job.sp.smoothing_window
+        opt.add_force(AAA_angle)
 
         print("Running Optimization...")
-        opt.run_optimization(n_steps=job.sp.n_steps,
-                             n_iterations=job.sp.n_iterations,
-                             backup_trajectories=True)
-
-        # save the optimized angles to file
-        for angle in opt.angles:
-            angle.save_to_file(job.fn(f"{angle.name}_angle.csv"))
-            angle.plot_potentials(file_path=job.fn(f"{angle.name}_potential.png"))
-            angle.plot_potential_history(file_path=job.fn(f"{angle.name}_potential_history.png"))
+        for n_iterations, n_steps, alpha in zip(job.sp.n_iterations,
+                                                job.sp.n_steps,
+                                                job.sp.state_alphas):
+            state.alpha = alpha
+            opt.run_optimization(n_steps=n_steps, n_iterations=n_iterations,
+                                 backup_trajectories=True)
+            AAA_angle.smooth_potential()
+        # save the optimized bonds to file
+        AAA_angle.save_potential(job.fn(f"{AAA_angle.name}_angle.csv"))
+        AAA_angle.save_potential_history(
+            job.fn(f"{AAA_angle.name}_potential_history.npy"))
+        AAA_angle.plot_potentials(
+            file_path=job.fn(f"{AAA_angle.name}_potential.png"))
+        AAA_angle.plot_potential_history(
+            file_path=job.fn(f"{AAA_angle.name}_potential_history.png"))
 
         # save plots to file
         for state in opt.states:
-            for angle in opt.angles:
-                angle.plot_fit_scores(state=state, file_path=job.fn(f"{state.name}_{angle.name}_fitscore.png"))
-                angle.plot_target_distribution(state=state, file_path=job.fn(f"{state.name}_{angle.name}_target_dist.png"))
-
-                angle.plot_distribution_comparison(state=state, file_path=job.fn(f"{state.name}_{angle.name}_dist_comparison.png"))
-
+            AAA_angle.save_state_data(state=state, file_path=job.fn(
+                f"state_{state.name}_angle_{AAA_angle.name}_data.npz"))
+            AAA_angle.plot_fit_scores(state=state, file_path=job.fn(
+                f"{state.name}_{AAA_angle.name}_fitscore.png"))
+            AAA_angle.plot_target_distribution(state=state, file_path=job.fn(
+                f"{state.name}_{AAA_angle.name}_target_dist.png"))
+            AAA_angle.plot_distribution_comparison(state=state,
+                                                 file_path=job.fn(
+                                                     f"{state.name}_{AAA_angle.name}_dist_comparison.png"))
 
         print("Optimization done")
         job.doc["done"] = True
