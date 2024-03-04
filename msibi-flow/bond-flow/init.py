@@ -38,13 +38,13 @@ def get_parameters(ordered_dict=OrderedDict()):
         "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"
     ]
     parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
-    parameters["cg_file_name"] = ["target_1monomer_per_bead.gsd"]
     parameters["states"] = [
         [
             {"name": "A",
              "remove_hydrogens": True,
              "alpha": 0.6,
-             "n_frames": 100
+             "n_frames": 100,
+             "cg_file_name": "target_1monomer_per_bead.gsd"
              },
         ],
 
@@ -54,7 +54,6 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["head_correction"] = ["linear"]
     parameters["nbins"] = [60]
     parameters["bonds"] = [
-        [
             {"type1": "A",
              "type2": "A",
              "x0": 1.5,
@@ -64,7 +63,6 @@ def get_parameters(ordered_dict=OrderedDict()):
              "k3": 0,
              "k2": 400
              },
-        ]
     ]
 
     return list(parameters.keys()), list(product(*parameters.values()))
