@@ -85,8 +85,7 @@ def optimize(job):
         job.doc.target_state_path = single_chain_job.path
         for idx, state in enumerate(job.sp.states):
             print("state: ", state)
-            gsd_file = single_chain_job.fn(
-                f"cg-trajectory{single_chain_job.doc.runs - 1}.gsd")
+            gsd_file = single_chain_job.fn(state["cg_file_name"])
             state = State(
                 name=state["name"],
                 kT=single_chain_job.sp.kT,
@@ -97,7 +96,7 @@ def optimize(job):
             opt.add_state(state)
 
         AA_bond = Bond(type1="A", type2="A", optimize=True, nbins=job.sp.nbins)
-        AA_bond.set_quadractic(
+        AA_bond.set_quadratic(
             x0=job.sp.bonds["x0"],
             x_min=job.sp.bonds["x_min"],
             x_max=job.sp.bonds["x_max"],
