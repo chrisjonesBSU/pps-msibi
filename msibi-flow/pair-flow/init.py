@@ -26,12 +26,12 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters = ordered_dict
 
     # Optimizer parameters
-    parameters["nlist"] = ["Cell"]
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
+    parameters["r_cut"] = [4.0]
     parameters["nlist_exclusions"] = [
             ["bond", "angle"],
-            ["bond"],
+            #["bond"],
     ]
     parameters["n_steps"] = [(2e5, 2e5)]
     parameters["state_alphas"] = [(0.6, 0.4)]
@@ -82,7 +82,7 @@ def get_parameters(ordered_dict=OrderedDict()):
             "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/angle-flow"
     ]
     parameters["angle_job_id"] = ["8bff05559ec3f79eeffebb8e71a217ae"]
-    parameters["bonds"] = [
+    parameters["angles"] = [
             {"type1": "A",
              "type2": "A",
              "type3": "A",

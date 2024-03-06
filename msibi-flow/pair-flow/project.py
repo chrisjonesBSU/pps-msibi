@@ -58,7 +58,7 @@ def get_file(job, file_name):
     directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
 )
 def optimize(job):
-    from msibi import MSIBI, State, Bond, Angle
+    from msibi import MSIBI, State, Bond, Angle, Pair
     import hoomd
     import os
     import numpy as np
@@ -70,7 +70,7 @@ def optimize(job):
             os.system(f"rm -r {dir_path}")
         print("Setting up MSIBI optimizer...")
         opt = MSIBI(
-            nlist=job.sp.nlist,
+            nlist=hoomd.md.nlist.Cell,
             integrator_method=hoomd.md.methods.ConstantVolume,
             method_kwargs={},
             thermostat=hoomd.md.methods.thermostats.MTTK,
@@ -106,6 +106,7 @@ def optimize(job):
             type1=job.sp.bonds["type1"],
             type2=job.sp.bonds["type2"],
             optimize=False,
+            nbins=bond_job.sp.bonds_nbins,
         )
         AA_bond.set_from_file(file_path=bond_job.fn(job.sp.bonds["file_path"]))
         opt.add_force(AA_bond)
@@ -119,6 +120,7 @@ def optimize(job):
             type2=job.sp.angles["type2"],
             type3=job.sp.angles["type3"],
             optimize=False,
+            nbins=angle_job.sp.angles_nbins,
         )
         AAA_angle.set_from_file(
                 file_path=angle_job.fn(job.sp.angles["file_path"])
@@ -127,10 +129,10 @@ def optimize(job):
 
         print("Creaing Pair objects...")
         AA_pair = Pair(
-                type1=job.so.pairs["type1"],
-                type2=job.so.pairs["type2"],
+                type1=job.sp.pairs["type1"],
+                type2=job.sp.pairs["type2"],
                 r_cut=job.sp.r_cut,
-                nbins=job.sp.nbins,
+                nbins=job.sp.pairs_nbins,
                 exclude_bonded=True,
                 optimize=True
         )
