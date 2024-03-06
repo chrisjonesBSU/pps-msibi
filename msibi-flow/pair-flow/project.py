@@ -134,6 +134,7 @@ def optimize(job):
                 exclude_bonded=True,
                 optimize=True
         )
+        AA_pair.set_lj(epsilon=1, sigma=1.5, r_min=0.1, r_cut=job.sp.r_cut)
         opt.add_force(AA_pair)
 
         print("Running Optimization...")
