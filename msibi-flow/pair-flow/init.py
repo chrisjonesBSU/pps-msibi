@@ -38,17 +38,18 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["n_iterations"] = [(5, 5)]
 
     # State parameters
-    parameters["bulk_project_path"] = [
+    parameters["pair_target_project"] = [
         "/home/erjank_project/PPS-MSIBI/pps-msibi/validation"
     ]
+    # For each state: give signac job id that matches
+    # state point from pair_target_project.
     parameters["states"] = [
         [
-            {"name": "A",
-             "remove_hydrogens": True,
+            {"name": "Ordered",
              "alpha": 0.6,
              "n_frames": 100,
+             "target_job_id": "100888a4bbe8114d13b7c682ba77a678",
              "cg_file_name": "target_1monomer_per_bead.gsd",
-             "job_id": "100888a4bbe8114d13b7c682ba77a678",
              },
         ],
 

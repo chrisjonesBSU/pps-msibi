@@ -81,17 +81,20 @@ def optimize(job):
         )
 
         print("Creating State objects...")
-        single_chain_project = signac.get_project(job.sp.single_chain_path)
+        target_project = signac.get_project(job.sp.pair_target_project)
         single_chain_job = single_chain_project.open_job(
             id=job.sp.single_chain_job_id
         )
         job.doc.target_state_path = single_chain_job.path
-        for idx, state in enumerate(job.sp.states):
-            print("state: ", state)
-            gsd_file = single_chain_job.fn(state["cg_file_name"])
+        for state in job.sp.states:
+            target_state_job = target_project.open_job(state["target_job_id"])
+            gsd_file = target_state_job.fn(state["cg_file_name"])
+            print("State: ", state)
+            print("Target gsd: ", gsd_file)
+            print()
             state = State(
                 name=state["name"],
-                kT=single_chain_job.sp.kT,
+                kT=target_state_job.sp.kT,
                 traj_file=gsd_file,
                 n_frames=state["n_frames"],
                 alpha=job.sp.state_alphas[0],
@@ -145,7 +148,8 @@ def optimize(job):
                 job.sp.n_steps,
                 job.sp.state_alphas
         ):
-            state.alpha = alpha
+            for state in opt.states:
+                state.alpha = alpha
             opt.run_optimization(
                     n_steps=n_steps,
                     n_iterations=n_iterations,
