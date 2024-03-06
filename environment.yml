@@ -6,7 +6,9 @@ dependencies:
   - signac = 2.1.0
   - signac-flow = 0.26.1
   - cuda-version = 11.8
+  - freud = 2.13.2
   - more-itertools
+  - scienceplots
   - jupyter
   - pip:
       - git+https://github.com/cmelab/msibi
