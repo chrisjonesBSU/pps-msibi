@@ -107,6 +107,7 @@ def optimize(job):
             type1=job.sp.bonds["type1"],
             type2=job.sp.bonds["type2"],
             optimize=False,
+            nbins=bond_job.sp.bonds_nbins,
         )
         AA_bond.set_from_file(file_path=bond_job.fn(job.sp.bonds["file_path"]))
         opt.add_force(AA_bond)
@@ -117,6 +118,7 @@ def optimize(job):
             type2=job.sp.angles["type2"],
             type3=job.sp.angles["type3"],
             optimize=True,
+            nbins=job.sp.angles_nbins,
         )
         AAA_angle.set_quadratic(
                 x0=job.sp.angles["x0"],
