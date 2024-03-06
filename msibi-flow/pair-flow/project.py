@@ -14,7 +14,7 @@ from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
 
 
-class AngleMSIBI(FlowProject):
+class PairMSIBI(FlowProject):
     pass
 
 
@@ -43,7 +43,7 @@ class Fry(DefaultSlurmEnvironment):
 
 
 # Definition of project-related labels (classification)
-@AngleMSIBI.label
+@PairMSIBI.label
 def completed(job):
     return job.doc.get("done")
 
@@ -53,8 +53,8 @@ def get_file(job, file_name):
 
 
 
-@AngleMSIBI.post(completed)
-@AngleMSIBI.operation(
+@PairMSIBI.post(completed)
+@PairMSIBI.operation(
     directives={"ngpu": 1, "executable": "python -u"}, name="optimize"
 )
 def optimize(job):
@@ -198,4 +198,4 @@ def optimize(job):
 
 
 if __name__ == "__main__":
-    AngleMSIBI(environment=Fry).main()
+    PairMSIBI(environment=Fry).main()
