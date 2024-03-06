@@ -154,7 +154,7 @@ def optimize(job):
             xlim=(1, 3.14),
             ylim=(-3,50)
     )
-        AAA_angl3.plot_potential_history(
+        AAA_angle.plot_potential_history(
             file_path=job.fn(f"{AAA_angle.name}_potential_history.png"),
             xlim=(1, 3.14),
             ylim=(-3,50)
