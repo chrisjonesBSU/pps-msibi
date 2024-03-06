@@ -31,11 +31,11 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["r_cut"] = [4.0]
     parameters["nlist_exclusions"] = [
             ["bond", "angle"],
-            #["bond"],
+            ["bond"],
     ]
-    parameters["n_steps"] = [(2e5, 2e5)]
-    parameters["state_alphas"] = [(0.6, 0.4)]
-    parameters["n_iterations"] = [(5, 5)]
+    parameters["n_steps"] = [(1e6, 2e6, 2e6, 3e6)]
+    parameters["state_alphas"] = [(0.6, 0.54, 0.486, 0.4374)]
+    parameters["n_iterations"] = [(5, 5, 5, 5)]
 
     # State parameters
     parameters["pair_target_project"] = [
