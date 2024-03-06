@@ -72,6 +72,7 @@ def npt_equilibrated(job):
 def nvt_equilibrated(job):
     return job.doc.nvt_equilibrated
 
+
 def get_ref_values(job):
     ref_length = job.doc.ref_length * Unit(job.doc.ref_length_units)
     ref_mass = job.doc.ref_mass * Unit(job.doc.ref_mass_units)
@@ -82,6 +83,10 @@ def get_ref_values(job):
             "energy": ref_energy
     }
     return ref_values_dict
+
+def coarse_grain_trajectory(job, gsd_file):
+    import grits
+    pass
 
 
 @MyProject.post(initial_npt_run_done)
@@ -339,6 +344,15 @@ def run_nvt_longer(job):
         sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
         job.doc.nvt_runs += 1
         print("Simulation finished.")
+
+
+@MyProject.pre(initial_nvt_run_done)
+@MyProject.post(nvt_equilibrated)
+@MyProject.operation(
+        directives={"ngpu": 1, "executable": "python -u"},
+        name="run-nvt-longer"
+)
+def coarse_grain(job)
 
 if __name__ == "__main__":
     MyProject(environment=Fry).main()
