@@ -3,6 +3,7 @@ archive
 log-files
 *.out
 .signac
+*.swp
 *.json
 .ipynb_checkpoints
 *.gsd
