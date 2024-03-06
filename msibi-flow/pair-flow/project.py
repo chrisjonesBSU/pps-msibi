@@ -82,14 +82,13 @@ def optimize(job):
 
         print("Creating State objects...")
         target_project = signac.get_project(job.sp.pair_target_project)
-        single_chain_job = single_chain_project.open_job(
-            id=job.sp.single_chain_job_id
-        )
-        job.doc.target_state_path = single_chain_job.path
         for state in job.sp.states:
-            target_state_job = target_project.open_job(state["target_job_id"])
-            gsd_file = target_state_job.fn(state["cg_file_name"])
             print("State: ", state)
+            target_state_job = target_project.open_job(
+                    id=state["target_job_id"]
+            )
+            print("Target Job:", target_state_job)
+            gsd_file = target_state_job.fn(state["cg_file_name"])
             print("Target gsd: ", gsd_file)
             print()
             state = State(
