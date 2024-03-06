@@ -38,16 +38,17 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["n_iterations"] = [(5, 5)]
 
     # State parameters
-    parameters["single_chain_path"] = [
-        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
-    parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
+    parameters["bulk_project_path"] = [
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/validation"
+    ]
     parameters["states"] = [
         [
             {"name": "A",
              "remove_hydrogens": True,
              "alpha": 0.6,
              "n_frames": 100,
-             "cg_file_name": "target_1monomer_per_bead.gsd"
+             "cg_file_name": "target_1monomer_per_bead.gsd",
+             "job_id": "100888a4bbe8114d13b7c682ba77a678",
              },
         ],
 
