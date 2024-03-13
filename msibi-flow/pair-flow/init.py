@@ -28,7 +28,7 @@ def get_parameters(ordered_dict=OrderedDict()):
     # Optimizer parameters
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
-    parameters["r_cut"] = [3.0, 4.0, 5.0]
+    parameters["r_cut"] = [4.0]
     parameters["nlist_exclusions"] = [
             ["bond", "angle"],
             #["bond"],
@@ -53,8 +53,7 @@ def get_parameters(ordered_dict=OrderedDict()):
              "target_job_id": "100888a4bbe8114d13b7c682ba77a678",
              "cg_file_name": "target_1monomer_per_bead.gsd",
              },
-        ],
-        [
+
             {"name": "Melted",
              "alpha": 0.6,
              "n_frames": 100,
@@ -62,7 +61,6 @@ def get_parameters(ordered_dict=OrderedDict()):
              "cg_file_name": "target_1monomer_per_bead.gsd",
              },
         ],
-
     ]
 
     # Pair parameters
