@@ -6,6 +6,7 @@ status, execute operations and submit them to a cluster. See also:
     $ python src/project.py --help
 """
 import signac
+import pickle
 from flow import FlowProject, directives
 from flow.environment import DefaultSlurmEnvironment
 import os
@@ -70,35 +71,44 @@ def make_cg_system(job):
     import mbuild as mb
     import numpy as np
 
-    chains = LJChain(
-            num_mols=job.sp.num_mols,
-            lengths=job.sp.lengths,
-            bond_lengths={"A-A": 1.48}
-    )
-
-    ref_values = get_ref_values(job)
 
     class SingleChainSystem(System):
-        def __init__(molecules, base_units=dict()):
+        def __init__(self, molecules, base_units=dict()):
             super(SingleChainSystem, self).__init__(
                     molecules=molecules,
                     base_units=base_units
             )
 
         def _build_system(self):
-            chain = self._molecules[0]
+            chain = self.all_molecules[0]
             head = chain.children[0]
             tail = chain.children[-1]
             chain_length = np.linalg.norm(tail.pos - head.pos)
-            box = mb.Box(lengths=[np.array([chain_length] * 3]) * 1.15)
+            box = mb.Box(lengths=np.array([chain_length] * 3) * 1.05)
             comp = mb.Compound()
             comp.add(chain)
             comp.box = box
-            chain.translate_to(box.Lx / 2, box.Ly / 2, box.Lz / 2)
+            chain.translate_to((box.Lx / 2, box.Ly / 2, box.Lz / 2))
             return comp
+
+    chains = LJChain(
+            num_mols=job.sp.num_mols,
+            lengths=job.sp.lengths,
+            bond_lengths={"A-A": 1.48}
+    )
+    ref_values = get_ref_values(job)
 
     system = SingleChainSystem(molecules=chains, base_units=ref_values)
     return system
+
+
+def get_ff(job):
+    """"""
+    msibi_project = signac.get_project(job.sp.msibi_project)
+    msibi_job = msibi_project.open_job(id=job.sp.msibi_job)
+    with open(msibi_job.fn("pps-msibi.pickle"), "rb") as f:
+        hoomd_ff = pickle.load(f)
+    return hoomd_ff
 
 
 @PPSSingleChain.post(initial_run_done)
@@ -111,6 +121,7 @@ def run(job):
     from unyt import Unit
     import flowermd
     from flowermd.base import Simulation
+    import hoomd
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -118,6 +129,10 @@ def run(job):
         print("------------------------------------")
         
         system = make_cg_system(job) 
+        hoomd_ff = get_ff(job)
+        for force in hoomd_ff:
+            if isinstance(force, hoomd.md.pair.Table):
+                force.nlist = hoomd.md.nlist.Tree(buffer=0.4)
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
         job.doc.ref_mass_units = "amu"
@@ -131,19 +146,20 @@ def run(job):
         gsd_path = job.fn(f"trajectory{job.doc.runs}.gsd")
         log_path = job.fn(f"log{job.doc.runs}.txt")
 
-        sim = Simulation.from_system(
-            system,
+        sim = Simulation(
+            initial_state=system.hoomd_snapshot,
+            forcefield=hoomd_ff,
+            reference_values=system.reference_values,
+            dt=job.sp.dt,
             gsd_write_freq=job.sp.gsd_write_freq,
             gsd_file_name=gsd_path,
             log_write_freq=job.sp.log_write_freq,
             log_file_name=log_path,
-            dt=job.sp.dt,
             seed=job.sp.sim_seed,
         )
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
-        sim.reference_length *= job.sp.sigma_scale
         # Store more unit information in job doc
-        tau_kT = job.doc.dt * job.sp.tau_kT
+        tau_kT = job.sp.dt * job.sp.tau_kT
         job.doc.tau_kT = tau_kT
         job.doc.real_time_step = sim.real_timestep.to("fs").value
         job.doc.real_time_units = "fs"
@@ -161,11 +177,11 @@ def run(job):
     name="run-longer"
 )
 def run_longer(job):
-    import pickle
     import unyt
     from unyt import Unit
     import flowermd
     from flowermd.base import Simulation
+    import hoomd
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -173,16 +189,20 @@ def run_longer(job):
         print("------------------------------------")
         print("Restarting and continuing simulation...")
         with open(job.fn("forcefield.pickle"), "rb") as f:
-            ff = pickle.load(f)
+            hoomd_ff = pickle.load(f)
+
+        for force in hoomd_ff:
+            if isinstance(force, hoomd.md.pair.Table):
+                force.nlist = hoomd.md.nlist.Tree(buffer=0.4)
 
         gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
         log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
         ref_values = get_ref_values(job)
         sim = Simulation(
             initial_state=job.fn("restart.gsd"),
-            forcefield=ff,
+            forcefield=hoomd_ff,
             reference_values=ref_values,
-            dt=job.doc.dt,
+            dt=job.sp.dt,
             gsd_write_freq=job.sp.gsd_write_freq,
             gsd_file_name=gsd_path,
             log_write_freq=job.sp.log_write_freq,
