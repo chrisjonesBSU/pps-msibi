@@ -53,6 +53,11 @@ def equilibrated(job):
     return job.doc.equilibrated
 
 
+@PPSSingleChain.label
+def sampled(job):
+    return job.doc.sampled
+
+
 def get_ref_values(job):
     ref_length = 0.3438 * Unit("nm")
     ref_mass = 32.06 * Unit("amu")
@@ -67,7 +72,7 @@ def get_ref_values(job):
 
 def make_cg_system(job):
     from flowermd.base import System
-    from flowermd.library import LJChain 
+    from flowermd.library import LJChain, PPS 
     import mbuild as mb
     import numpy as np
 
@@ -91,13 +96,14 @@ def make_cg_system(job):
             chain.translate_to((box.Lx / 2, box.Ly / 2, box.Lz / 2))
             return comp
 
-    chains = LJChain(
-            num_mols=job.sp.num_mols,
-            lengths=job.sp.lengths,
-            bond_lengths={"A-A": 1.48}
-    )
+    #chains = LJChain(
+    #        num_mols=job.sp.num_mols,
+    #        lengths=job.sp.lengths,
+    #        bond_lengths={"A-A": 1.48}
+    #)
+    chains = PPS(num_mols=job.sp.num_mols, lengths=job.sp.lengths)
+    chains.coarse_grain(beads={"A": "c1cc(S)ccc1"})
     ref_values = get_ref_values(job)
-
     system = SingleChainSystem(molecules=chains, base_units=ref_values)
     return system
 
@@ -132,7 +138,19 @@ def run(job):
         hoomd_ff = get_ff(job)
         for force in hoomd_ff:
             if isinstance(force, hoomd.md.pair.Table):
-                force.nlist = hoomd.md.nlist.Tree(buffer=0.4)
+                original_nlist = force.nlist
+                original_exclusions = original_nlist.exclusions
+                tree_nlist = hoomd.md.nlist.Tree(
+                        buffer=0.4, exclusions=original_exclusions
+                )
+                force.nlist = tree_nlist 
+            elif isinstance(force, hoomd.md.bond.Table):
+                if job.sp.harmonic_bonds:
+                    print("Replacing bond table potential with harmonic")
+                    hoomd_ff.remove(force)
+                    harmonic_bond = hoomd.md.bond.Harmonic()
+                    harmonic_bond.params["A-A"] = dict(k=1777.6, r0=1.4226)
+                    hoomd_ff.append(harmonic_bond)
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
         job.doc.ref_mass_units = "amu"
@@ -191,10 +209,6 @@ def run_longer(job):
         with open(job.fn("forcefield.pickle"), "rb") as f:
             hoomd_ff = pickle.load(f)
 
-        for force in hoomd_ff:
-            if isinstance(force, hoomd.md.pair.Table):
-                force.nlist = hoomd.md.nlist.Tree(buffer=0.4)
-
         gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
         log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
         ref_values = get_ref_values(job)
@@ -218,6 +232,68 @@ def run_longer(job):
         sim.save_restart_gsd(job.fn("restart.gsd"))
         job.doc.runs += 1
         print("Simulation finished.")
+
+
+@PPSSingleChain.pre(equilibrated)
+@PPSSingleChain.post(sampled)
+@PPSSingleChain.operation(
+    directives={"ngpu": 0, "executable": "python -u"},
+    name="sample"
+)
+def sample(job):
+    import numpy as np
+    import unyt
+    from unyt import Unit
+    from cmeutils.polymers import (
+            radius_of_gyration,
+            end_to_end_distance,
+            persistence_length
+    )
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Sampling Radius of Gyration...")
+        print("------------------------------------")
+        rg_means, rg_std, rg_array = radius_of_gyration(
+                gsd_file=job.fn(f"trajectory{job.doc.runs - 1}.gsd"),
+                start=job.doc.equil_gsd_start,
+                stop=-1,
+                stride=job.doc.equil_gsd_stride,
+        )
+        job.doc.rg_avg = np.mean(rg_means)
+        job.doc.rg_std = np.std(rg_means)
+        np.save(arr=np.array(rg_array), file=job.fn("rg_samples.npy"))
+        print("------------------------------------")
+        print("Sampling End-to-End Distance...")
+        print("------------------------------------")
+        re_means, re_std, re_array, re_vectors = end_to_end_distance(
+                gsd_file=job.fn(f"trajectory{job.doc.runs - 1}.gsd"),
+                start=job.doc.equil_gsd_start,
+                stop=-1,
+                stride=job.doc.equil_gsd_stride,
+                head_index=0,
+                tail_index=-1,
+        )
+        job.doc.re_avg = np.mean(re_means)
+        job.doc.re_std = np.std(re_means)
+        np.save(arr=np.array(re_array), file=job.fn("re_samples.npy"))
+        print("------------------------------------")
+        print("Sampling Persistence Length...")
+        print("------------------------------------")
+        lp_mean, lp_std = persistence_length(
+                gsd_file=job.fn(f"trajectory{job.doc.runs - 1}.gsd"),
+                select_atoms_arg = "name A A",
+                start=job.doc.equil_gsd_start,
+                window_size=25,
+                stop=-1
+        )
+        job.doc.lp_mean = lp_mean
+        job.doc.lp_std = lp_std
+
+        print("Finished.")
+        job.doc.sampled = True
 
 
 if __name__ == "__main__":

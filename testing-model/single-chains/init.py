@@ -28,12 +28,22 @@ def get_parameters():
             60,
             80,
             100,
+            120,
             150,
             200,
             250,
             300,
+            350,
+            400,
+            450,
+            500,
+            550,
+            600,
+            650,
+            700
     ]
     parameters["density"] = [0.0001]
+    parameters["harmonic_bonds"] = [True]
     parameters["sigma_scale"] = [0.955]
     parameters["kT"] = [
             5.0,
@@ -65,6 +75,7 @@ def main():
         job = project.open_job(statepoint)
         job.init()
         job.doc.setdefault("equilibrated", False)
+        job.doc.setdefault("sampled", False)
         job.doc.setdefault("runs", 0)
 
 
