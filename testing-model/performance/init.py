@@ -21,26 +21,26 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
+    parameters["x_len"] = [1.2]
+    parameters["y_len"] = [1.2]
     parameters["n_repeats"] = [
         5,
+        10,
         15,
         25,
         35,
         50,
+        60,
         70,
         80,
+        90,
+        100,
     ]
     parameters["lengths"] = [40]
     parameters["density"] = [1.30]
     parameters["harmonic_bonds"] = [True]
-    parameters["kT"] = [
-            1.0,
-            2.0,
-            3.0,
-            4.0,
-    ]
+    parameters["kT"] = [1.0]
     parameters["n_steps"] = [1e5]
-    parameters["shrink_period"] = [10000]
     parameters["r_cut"] = [4.0]
     parameters["dt"] = [0.0003]
     parameters["tau_kT"] = [100]

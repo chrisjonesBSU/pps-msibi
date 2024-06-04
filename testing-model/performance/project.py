@@ -73,19 +73,17 @@ def get_ref_values(job):
 def make_cg_system_lattice(job):
     from flowermd.base import Lattice 
     from flowermd.library import PPS 
-    try:
-        job.sp.num_mols
-        job.doc.num_mols = job.sp.num_mols
-    except KeyError:
-        num_mols = int((job.sp.N ** 2) * 2)
-        job.doc.num_mols = num_mols
-    chains = PPS(num_mols=job.doc.num_mols, lengths=job.sp.lengths)
 
+    num_mols = int((job.sp.n_repeats ** 2) * 2)
+    job.doc.num_mols = num_mols
+    chains = PPS(num_mols=job.doc.num_mols, lengths=job.sp.lengths)
     chains.coarse_grain(beads={"A": "c1cc(S)ccc1"})
     ref_values = get_ref_values(job)
     system = Lattice(
             molecules=chains,
-            density=job.sp.density,
+            n=job.sp.n_repeats,
+            x=job.sp.x_len,
+            y=job.sp.y_len,
             base_units=ref_values
     )
     return system
@@ -165,7 +163,7 @@ def run(job):
         print(job.id)
         print("------------------------------------")
         
-        system = make_cg_system_bulk(job) 
+        system = make_cg_system_lattice(job) 
         hoomd_ff = get_ff(job)
         for force in hoomd_ff:
             if isinstance(force, hoomd.md.bond.Table):
@@ -204,38 +202,11 @@ def run(job):
         sim.pickle_forcefield(job.fn("forcefield.pickle"))
         # Store more unit information in job doc
         tau_kT = job.sp.dt * job.sp.tau_kT
-        tau_pressure = job.sp.dt * job.sp.tau_pressure
-        job.doc.tau_pressure = tau_pressure
         job.doc.tau_kT = tau_kT
         job.doc.real_time_step = sim.real_timestep.to("fs").value
         job.doc.real_time_units = "fs"
-        target_box = get_target_box_mass_density(
-                mass=system.mass.to("g"),
-                density=job.sp.density * Unit("g/cm**3")
-        )
-        job.doc.target_box = target_box.value
-        shrink_kT_ramp = sim.temperature_ramp(
-                n_steps=job.sp.shrink_n_steps,
-                kT_start=job.sp.shrink_kT,
-                kT_final=job.sp.kT
-        )
-        sim.run_update_volume(
-                final_box_lengths=target_box,
-                n_steps=job.sp.shrink_n_steps,
-                period=job.sp.shrink_period,
-                tau_kt=tau_kT,
-                kT=shrink_kT_ramp
-        )
-        sim.run_NVT(n_steps=2e7, kT=job.sp.kT, tau_kt=tau_kT)
-        sim.run_NPT(
-                n_steps=job.sp.n_steps,
-                kT=job.sp.kT,
-                pressure=job.sp.pressure,
-                tau_pressure=job.doc.tau_pressure,
-                tau_kt=job.doc.tau_kT,
-                gamma=job.sp.gamma,
-        )
-        sim.save_restart_gsd(job.fn("npt-restart.gsd"))
+        sim.run_NVT(n_steps=job.sp.n_steps, kT=job.sp.kT, tau_kt=tau_kT)
+        sim.save_restart_gsd(job.fn("restart.gsd"))
         job.doc.runs = 1
         print("Simulation finished.")
 
