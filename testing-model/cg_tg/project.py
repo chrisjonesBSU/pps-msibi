@@ -332,7 +332,8 @@ def sample(job):
                 job.doc.msd_n_samples
         ) 
         ts = job.doc.real_time_step * 1e-15
-        ts_frrame = steps_per_frame * ts
+        ts_frame = steps_per_frame * ts
+
         count = 0
         for i in job.doc.msd_start_indices:
             msd = msd_from_gsd(
@@ -350,7 +351,7 @@ def sample(job):
             np.save(file=job.fn(f"msd_time{count}.npy"), arr=time_array) 
             np.save(file=job.fn(f"msd_data_real{count}.npy"), arr=msd_results)
             np.save(file=job.fn(f"msd_data_raw{count}.npy"), arr=msd.msd)
-            print(f"MSD calculation number {count} finished and saved...")
+            print(f"MSD calculation number {count} using window {i} finished and saved...")
             count += 1
 
         print("Finished.")
