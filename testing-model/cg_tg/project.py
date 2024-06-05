@@ -314,13 +314,42 @@ def production_run(job):
 )
 def sample(job):
     import numpy as np
-    import unyt
-    from unyt import Unit
+    from cmeutils.dynamics import msd_from_gsd
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
         print(job.id)
         print("------------------------------------")
+        steps_per_frame = int(5e5)
+        # Update job doc
+        job.doc.msd_n_samples = 15
+        job.doc.msd_start_frame = 0
+        job.doc.msd_chunk_size = 200 
+        job.doc.msd_end_frame = 1000 - msd_chunk_size 
+        job.doc.msd_start_indices = np.random.randint(
+                job.doc.msd_start_frame,
+                job.doc.msd_end_frame,
+                job.doc.msd_n_samples
+        ) 
+        ts = job.doc.real_time_step * 1e-15
+        ts_frame = steps_per_frame * ts
+        for i in job.doc.msd_start_indices:
+            msd = msd_from_gsd(
+                    gsdfile=job.fn("production.gsd"),
+                    start=int(i),
+                    stop=int(i) + job.doc.msd_chunk_size,
+                    atom_types="all",
+                    msd_mode="direct"
+            )
+            msd_results = np.copy(msd.msd)
+            conv_factor = (job.doc.ref_length**2) * 1e-18 
+            job.doc.msd_units = "nm**2 / s"
+            msd_results *= conv_factor 
+            time_array = np.arrange(0, job.doc.msd_chunk_size, 1) * ts_frame
+            np.save(file=job.fn(f"msd_time{i}.npy"), arr=time_array) 
+            np.save(file=job.fn(f"msd_data_real{i}.npy"), arr=msd_results)
+            np.save(file=job.fn(f"msd_data_raw{i}.npy"), arr=msd.msd)
+            print(f"MSD calculation number {i} finished and saved...")
 
         print("Finished.")
         job.doc.sampled = True
