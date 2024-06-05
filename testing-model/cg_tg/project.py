@@ -261,7 +261,7 @@ def run_longer(job):
 
 
 @PPSCG.pre(equilibrated)
-@PPSCG.post(sampled)
+@PPSCG.post(production_done)
 @PPSCG.operation(
     directives={"ngpu": 1, "executable": "python -u"},
     name="production"
@@ -325,14 +325,15 @@ def sample(job):
         job.doc.msd_n_samples = 15
         job.doc.msd_start_frame = 0
         job.doc.msd_chunk_size = 200 
-        job.doc.msd_end_frame = 1000 - msd_chunk_size 
+        job.doc.msd_end_frame = 1000 - job.doc.msd_chunk_size 
         job.doc.msd_start_indices = np.random.randint(
                 job.doc.msd_start_frame,
                 job.doc.msd_end_frame,
                 job.doc.msd_n_samples
         ) 
         ts = job.doc.real_time_step * 1e-15
-        ts_frame = steps_per_frame * ts
+        ts_frrame = steps_per_frame * ts
+        count = 0
         for i in job.doc.msd_start_indices:
             msd = msd_from_gsd(
                     gsdfile=job.fn("production.gsd"),
@@ -345,11 +346,12 @@ def sample(job):
             conv_factor = (job.doc.ref_length**2) * 1e-18 
             job.doc.msd_units = "nm**2 / s"
             msd_results *= conv_factor 
-            time_array = np.arrange(0, job.doc.msd_chunk_size, 1) * ts_frame
-            np.save(file=job.fn(f"msd_time{i}.npy"), arr=time_array) 
-            np.save(file=job.fn(f"msd_data_real{i}.npy"), arr=msd_results)
-            np.save(file=job.fn(f"msd_data_raw{i}.npy"), arr=msd.msd)
-            print(f"MSD calculation number {i} finished and saved...")
+            time_array = np.arange(0, job.doc.msd_chunk_size, 1) * ts_frame
+            np.save(file=job.fn(f"msd_time{count}.npy"), arr=time_array) 
+            np.save(file=job.fn(f"msd_data_real{count}.npy"), arr=msd_results)
+            np.save(file=job.fn(f"msd_data_raw{count}.npy"), arr=msd.msd)
+            print(f"MSD calculation number {count} finished and saved...")
+            count += 1
 
         print("Finished.")
         job.doc.sampled = True
