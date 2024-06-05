@@ -173,8 +173,15 @@ def run(job):
                     harmonic_bond = hoomd.md.bond.Harmonic()
                     harmonic_bond.params["A-A"] = dict(k=1777.6, r0=1.4226)
                     hoomd_ff.append(harmonic_bond)
-            else:
-                pass
+            if isinstance(force, hoomd.md.pair.Table):
+                if job.sp.use_tree:
+                    original_nlist = force.nlist
+                    original_exclusions = original_nlist.exclusions
+                    tree_nlist = hoomd.md.nlist.Tree(
+                            buffer=0.4, exclusions=original_exclusions
+                    )
+                else:
+                    pass
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
         job.doc.ref_mass_units = "amu"

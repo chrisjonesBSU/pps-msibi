@@ -27,8 +27,9 @@ def get_parameters():
         5,
         10,
         15,
-        25,
-        35,
+        20,
+        30,
+        40,
         50,
         60,
         70,
@@ -38,13 +39,17 @@ def get_parameters():
     ]
     parameters["lengths"] = [40]
     parameters["density"] = [1.30]
+    parameters["use_tree"] = [
+        True,
+        #False
+    ]
     parameters["harmonic_bonds"] = [True]
     parameters["kT"] = [1.0]
-    parameters["n_steps"] = [1e5]
+    parameters["n_steps"] = [2e5]
     parameters["r_cut"] = [4.0]
     parameters["dt"] = [0.0003]
     parameters["tau_kT"] = [100]
-    parameters["gsd_write_freq"] = [1e5]
+    parameters["gsd_write_freq"] = [2e3]
     parameters["log_write_freq"] = [1e2]
     parameters["sim_seed"] = [42]
     # Get FF from the MSIBI Project
