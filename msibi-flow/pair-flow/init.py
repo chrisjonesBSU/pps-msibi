@@ -28,38 +28,118 @@ def get_parameters(ordered_dict=OrderedDict()):
     # Optimizer parameters
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
-    parameters["r_cut"] = [4.0]
+    parameters["r_cut"] = [2.9, 4.0, 5.0, 6.0]
     parameters["nlist_exclusions"] = [
-            ["bond", "angle"],
             #["bond"],
+            ["bond", "angle"],
+            #["bond", "angle", "dihedral"],
     ]
-    parameters["n_steps"] = [(1e6, 2e6, 2e6, 3e6)]
-    parameters["state_alphas"] = [(0.6, 0.54, 0.486, 0.4374)]
+    parameters["n_steps"] = [
+            [
+                5e5,
+                5e5,
+                5e5,
+                5e5,
+                5e5,
+                1e6,
+                1e6,
+                1e6,
+                1e6,
+                1e6,
+                2e6,
+                2e6,
+                2e6,
+                2e6,
+                2e6,
+
+            ],
+    ]
+    parameters["state_alphas"] = [
+        [
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+            [0.75, 0.75, 0.75],
+        ]
+    ]
     parameters["n_iterations"] = [
-            (5, 5, 5, 5),
+            [
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+                10,
+            ],
     ]
+    parameters["epsilon"] = [1.25]
+    parameters["T_scale"] = [1]
+    parameters["sigma"] = [1.5]
 
     # State parameters
-    parameters["pair_target_project"] = [
-        "/home/erjank_project/PPS-MSIBI/pps-msibi/validation"
-    ]
-    # For each state: give signac job id that matches
-    # state point from pair_target_project.
+    # For each state: path to project with target trajectories,
+    # and the job ID state point from pair_target_project.
     parameters["states"] = [
         [
-            {"name": "Ordered",
+            #{"name": "Ordered",
+            # "alpha": 0.6,
+            # "n_frames": 50,
+            # "target_project": "/home/erjank_project/PPS-MSIBI/pps-msibi/validation",
+            # "target_job_id": "73e2a18dd6e440ba0066c934fcb829e0",
+            # "cg_file_name": "target_1monomer_per_bead.gsd",
+            # },
+
+            {"name": "BelowTg",
              "alpha": 0.6,
-             "n_frames": 100,
-             "target_job_id": "100888a4bbe8114d13b7c682ba77a678",
+             "n_frames": 50,
+             "target_project": "/home/erjank_project/PPS-MSIBI/pps-msibi/validation",
+             "target_job_id": "1cbc57c38be8cfe0ae9994bcb19467e2",
+             "cg_file_name": "target_1monomer_per_bead.gsd",
+             },
+
+            {"name": "AmorphousTg",
+             "alpha": 0.6,
+             "n_frames": 50,
+             "target_project": "/home/erjank_project/PPS-MSIBI/pps-msibi/validation",
+             "target_job_id": "39edcdb395b6b0d3c3028c6feb7547af",
              "cg_file_name": "target_1monomer_per_bead.gsd",
              },
 
             {"name": "Melted",
              "alpha": 0.6,
-             "n_frames": 100,
+             "n_frames": 50,
+             "target_project": "/home/erjank_project/PPS-MSIBI/pps-msibi/validation",
              "target_job_id": "212e36add95bb5744b05aa8ce8d29449",
              "cg_file_name": "target_1monomer_per_bead.gsd",
              },
+
+            #{"name": "LowDen",
+            # "alpha": 0.6,
+            # "n_frames": 50,
+            # "target_project": "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/low-density-state",
+            # "target_job_id": "5edb80880ecdb5cbd693d877e40882d5",
+            # "cg_file_name": "target_1monomer_per_bead.gsd",
+            # },
         ],
     ]
 
@@ -72,10 +152,10 @@ def get_parameters(ordered_dict=OrderedDict()):
              "epsilon": 1,
              "sigma": 1.5,
              "r_min": 0.1,
-             "smoothing_window": 5,
+             "smoothing_window": 7,
              },
     ]
-    parameters["smoothing_window"] = [5]
+    parameters["smoothing_window"] = [7]
     # Bond parameters
     parameters["bond_project_path"] = [
             "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"
@@ -91,7 +171,7 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["angle_project_path"] = [
             "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/angle-flow"
     ]
-    parameters["angle_job_id"] = ["8bff05559ec3f79eeffebb8e71a217ae"]
+    parameters["angle_job_id"] = ["d23d8c3ba38040009adda789dca01050"]
     parameters["angles"] = [
             {"type1": "A",
              "type2": "A",

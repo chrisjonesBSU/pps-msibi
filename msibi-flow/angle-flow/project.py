@@ -78,7 +78,7 @@ def optimize(job):
             thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
             gsd_period=job.sp.n_steps[0] // 500,
-            nlist_exclusions=job.sp.nlist_exclusions,
+            nlist_exclusions=None,
         )
 
         print("Creating State objects...")

@@ -64,6 +64,8 @@ def optimize(job):
     import numpy as np
 
     with job:
+        print("Starting MSIBI Optimization for job:")
+        print(job.id)
         job.doc["done"] = False
         if os.path.exists(job.fn("states")):
             dir_path = job.fn("states")
@@ -76,14 +78,14 @@ def optimize(job):
             thermostat=hoomd.md.methods.thermostats.MTTK,
             thermostat_kwargs={"tau": job.sp.thermostat_tau},
             dt=job.sp.dt,
-            gsd_period=job.sp.n_steps[0] // 500,
+            gsd_period=job.sp.n_steps[0] // 200,
             nlist_exclusions=job.sp.nlist_exclusions,
         )
 
         print("Creating State objects...")
-        target_project = signac.get_project(job.sp.pair_target_project)
         for state in job.sp.states:
             print("State: ", state)
+            target_project = signac.get_project(state["target_project"])
             target_state_job = target_project.open_job(
                     id=state["target_job_id"]
             )
@@ -91,12 +93,16 @@ def optimize(job):
             gsd_file = target_state_job.fn(state["cg_file_name"])
             print("Target gsd: ", gsd_file)
             print()
+            if state["name"] == "Ordered":
+                t_scale = job.sp.T_scale
+            else:
+                t_scale = 1
             state = State(
                 name=state["name"],
-                kT=target_state_job.sp.kT,
+                kT=target_state_job.sp.kT * t_scale,
                 traj_file=gsd_file,
                 n_frames=state["n_frames"],
-                alpha=job.sp.state_alphas[0],
+                alpha=1.0,
             )
             opt.add_state(state)
 
@@ -138,24 +144,32 @@ def optimize(job):
                 exclude_bonded=True,
                 optimize=True
         )
-        AA_pair.set_lj(epsilon=1, sigma=1.5, r_min=0.1, r_cut=job.sp.r_cut)
+        AA_pair.set_lj(
+                epsilon=job.sp.epsilon,
+                sigma=job.sp.sigma,
+                r_min=0.1,
+                r_cut=job.sp.r_cut
+        )
         AA_pair.smoothing_window = 5
         opt.add_force(AA_pair)
 
         print("Running Optimization...")
-        for n_iterations, n_steps, alpha in zip(
+        for n_iterations, n_steps, alphas in zip(
                 job.sp.n_iterations,
                 job.sp.n_steps,
                 job.sp.state_alphas
         ):
-            for state in opt.states:
-                state.alpha = alpha
+            print("ALPHAS")
+            print(alphas)
+            for idx, state in enumerate(opt.states):
+                state.alpha = alphas[idx]
             opt.run_optimization(
                     n_steps=n_steps,
                     n_iterations=n_iterations,
                     backup_trajectories=True
             )
             AA_pair.smooth_potential()
+            AA_pair.save_potential(job.fn(f"pair_pot.csv"))
 
         # save the optimized pairs to file
         AA_pair.save_potential(job.fn(f"{AA_pair.name}_pair.csv"))

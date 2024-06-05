@@ -29,14 +29,14 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["nlist"] = ["Cell"]
     parameters["thermostat_tau"] = [0.03]
     parameters["dt"] = [0.0003]
-    parameters["nlist_exclusions"] = [["bond", "angle"]]
-    parameters["n_steps"] = [(2e5, 2e5)]
-    parameters["state_alphas"] = [(0.6, 0.4)]
-    parameters["n_iterations"] = [(5, 5)]
+    parameters["n_steps"] = [(2e5, 2e5, 5e5, 1e6, 2e6)]
+    parameters["state_alphas"] = [(0.6, 0.5, 0.4, 0.3, 0.2)]
+    parameters["n_iterations"] = [(5, 5, 5, 5, 5,)]
 
     # State parameters
     parameters["single_chain_path"] = [
-        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"]
+        "/home/erjank_project/PPS-MSIBI/pps-msibi/training-runs/single-chains"
+    ]
     parameters["single_chain_job_id"] = ["29a7f0d216700e7c8534b8c11140ba06"]
     parameters["states"] = [
         [
@@ -54,27 +54,32 @@ def get_parameters(ordered_dict=OrderedDict()):
     parameters["head_correction"] = ["linear"]
     parameters["angles_nbins"] = [100]
     parameters["angles"] = [
-            {"type1": "A",
-             "type2": "A",
-             "type3": "A",
-             "x0": 2.2,
-             "x_min": 0,
-             "x_max": np.pi,
-             "k4": 0,
-             "k3": 0,
-             "k2": 200,
-             "smoothing_window": 5,
+            {
+                "type1": "A",
+                 "type2": "A",
+                 "type3": "A",
+                 "x0": 2.2,
+                 "x_min": 0,
+                 "x_max": np.pi,
+                 "k4": 0,
+                 "k3": 0,
+                 "k2": 200,
+                 "smoothing_window": 9,
              },
     ]
-    parameters["smoothing_window"] = [5]
+    parameters["smoothing_window"] = [9]
+
     # Bond parameters
-    parameters["bond_project_path"] = ["/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"]
+    parameters["bond_project_path"] = [
+            "/home/erjank_project/PPS-MSIBI/pps-msibi/msibi-flow/bond-flow"
+    ]
     parameters["bond_job_id"] = ["4105543ae60b9ead193f3e8f229afcf7"]
     parameters["bonds_nbins"] = [100]
     parameters["bonds"] = [
-            {"type1": "A",
-             "type2": "A",
-             "file_path": "A-A_bond.csv",
+            {
+                "type1": "A",
+                 "type2": "A",
+                 "file_path": "A-A_bond.csv",
              },
     ]
 

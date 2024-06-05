@@ -97,10 +97,10 @@ def run_npt(job):
     """Run a bulk simulation; equilibrate in NPT"""
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd 
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -214,10 +214,10 @@ def run_npt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd 
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -244,7 +244,7 @@ def run_npt_longer(job):
         )
         print("Running NPT simulation.")
         sim.run_NPT(
-            n_steps=4e8,
+            n_steps=1e8,
             kT=job.sp.kT,
             pressure=job.doc.pressure,
             tau_kt=job.doc.tau_kT,
@@ -265,10 +265,11 @@ def run_nvt(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.system import Pack
-    from jankflow.library import PPS, OPLS_AA_PPS
-    from jankflow.base.simulation import Simulation
+    import flowermd
+    from flowermd.base.system import Pack
+    from flowermd.library import PPS, OPLS_AA_PPS
+    from flowermd.base.simulation import Simulation
+    from flowermd.utils import get_target_box_mass_density
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -292,12 +293,17 @@ def run_nvt(job):
                 log_file_name=log_path,
                 seed=job.sp.sim_seed,
         )
+        target_box = get_target_box_mass_density(
+                mass=sim.mass.to("g"),
+                density=job.doc.avg_density * Unit("g/cm**3")
+        )
         sim.run_update_volume(
                 n_steps=2e6,
                 period=1,
                 kT=job.sp.kT,
                 tau_kt=job.doc.tau_kT,
-                final_density=job.doc.avg_density
+                final_box_lengths=target_box
+                #final_density=job.doc.avg_density
         )
         sim.run_NVT(n_steps=5e7, kT=job.sp.kT, tau_kt=job.doc.tau_kT)
         sim.save_restart_gsd(job.fn("restart-nvt.gsd"))
@@ -315,8 +321,8 @@ def run_nvt_longer(job):
     import pickle
     import unyt
     from unyt import Unit
-    import jankflow
-    from jankflow.base.simulation import Simulation
+    import flowermd 
+    from flowermd.base.simulation import Simulation
     with job:
         print("------------------------------------")
         print("JOB ID NUMBER:")
@@ -345,14 +351,6 @@ def run_nvt_longer(job):
         job.doc.nvt_runs += 1
         print("Simulation finished.")
 
-
-@MyProject.pre(initial_nvt_run_done)
-@MyProject.post(nvt_equilibrated)
-@MyProject.operation(
-        directives={"ngpu": 1, "executable": "python -u"},
-        name="run-nvt-longer"
-)
-def coarse_grain(job)
 
 if __name__ == "__main__":
     MyProject(environment=Fry).main()
