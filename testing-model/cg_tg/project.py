@@ -58,6 +58,11 @@ def sampled(job):
     return job.doc.sampled
 
 
+@PPSCG.label
+def production_done(job):
+    return job.isfile("production-restart.gsd")
+
+
 def get_ref_values(job):
     ref_length = 0.3438 * Unit("nm")
     ref_mass = 32.06 * Unit("amu")
@@ -147,20 +152,22 @@ def run(job):
         system = make_cg_system_bulk(job) 
         hoomd_ff = get_ff(job)
         for force in hoomd_ff:
-            elif isinstance(force, hoomd.md.bond.Table):
+            if isinstance(force, hoomd.md.bond.Table):
                 if job.sp.harmonic_bonds:
                     print("Replacing bond table potential with harmonic")
                     hoomd_ff.remove(force)
                     harmonic_bond = hoomd.md.bond.Harmonic()
                     harmonic_bond.params["A-A"] = dict(k=1777.6, r0=1.4226)
                     hoomd_ff.append(harmonic_bond)
+            else:
+                pass
         # Store reference units and values
         job.doc.ref_mass = system.reference_mass.to("amu").value
         job.doc.ref_mass_units = "amu"
         job.doc.ref_energy = system.reference_energy.to("kJ/mol").value
         job.doc.ref_energy_units = "kJ/mol"
         job.doc.ref_length = (
-                system.reference_length.to("nm").value * job.sp.sigma_scale
+                system.reference_length.to("nm").value
         )
         job.doc.ref_length_units = "nm"
         # Set up Simulation obj
@@ -188,15 +195,15 @@ def run(job):
                 mass=system.mass.to("g"),
                 density=job.sp.density * Unit("g/cm**3")
         )
-        job.doc.target_box = target_box.values
+        job.doc.target_box = target_box.value
         shrink_kT_ramp = sim.temperature_ramp(
                 n_steps=job.sp.shrink_n_steps,
                 kT_start=job.sp.shrink_kT,
                 kT_final=job.sp.kT
         )
         sim.run_update_volume(
-                final_box_lenghts=target_box,
-                n_steps=job.sp.shirnk_n_steps,
+                final_box_lengths=target_box,
+                n_steps=job.sp.shrink_n_steps,
                 period=job.sp.shrink_period,
                 tau_kt=tau_kT,
                 kT=shrink_kT_ramp
@@ -228,8 +235,8 @@ def run_longer(job):
         with open(job.fn("forcefield.pickle"), "rb") as f:
             hoomd_ff = pickle.load(f)
 
-        gsd_path = job.fn(f"trajectory-npt{job.doc.npt_runs}.gsd")
-        log_path = job.fn(f"log-npt{job.doc.npt_runs}.txt")
+        gsd_path = job.fn(f"trajectory{job.doc.runs}.gsd")
+        log_path = job.fn(f"log{job.doc.runs}.txt")
         ref_values = get_ref_values(job)
         sim = Simulation(
             initial_state=job.fn("restart.gsd"),
@@ -254,6 +261,52 @@ def run_longer(job):
 
 
 @PPSCG.pre(equilibrated)
+@PPSCG.post(sampled)
+@PPSCG.operation(
+    directives={"ngpu": 1, "executable": "python -u"},
+    name="production"
+)
+def production_run(job):
+    import unyt
+    from unyt import Unit
+    import flowermd
+    from flowermd.base import Simulation
+    import hoomd
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Restarting and continuing simulation...")
+        print("Running the production run...")
+        with open(job.fn("forcefield.pickle"), "rb") as f:
+            hoomd_ff = pickle.load(f)
+
+        gsd_path = job.fn(f"production.gsd")
+        log_path = job.fn(f"production.txt")
+        ref_values = get_ref_values(job)
+        sim = Simulation(
+            initial_state=job.fn("restart.gsd"),
+            forcefield=hoomd_ff,
+            reference_values=ref_values,
+            dt=job.sp.dt,
+            gsd_write_freq=int(5e5),
+            gsd_file_name=gsd_path,
+            log_write_freq=job.sp.log_write_freq,
+            log_file_name=log_path,
+            seed=job.sp.sim_seed,
+        )
+        print("Running simulation.")
+        sim.run_NVT(
+            n_steps=5e8,
+            kT=job.sp.kT,
+            tau_kt=job.doc.tau_kT,
+        )
+        sim.save_restart_gsd(job.fn("production-restart.gsd"))
+        print("Simulation finished.")
+
+
+@PPSCG.pre(production_done)
 @PPSCG.post(sampled)
 @PPSCG.operation(
     directives={"ngpu": 0, "executable": "python -u"},
