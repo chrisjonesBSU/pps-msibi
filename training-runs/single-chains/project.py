@@ -52,6 +52,11 @@ def equilibrated(job):
     return job.doc.equilibrated
 
 
+@PPSSingleChain.label
+def sampled(job):
+    return job.doc.sampled
+
+
 def get_ref_values(job):
     ref_length = job.doc.ref_length * Unit(job.doc.ref_length_units)
     ref_mass = job.doc.ref_mass * Unit(job.doc.ref_mass_units)
@@ -182,6 +187,69 @@ def run_longer(job):
         sim.save_restart_gsd(job.fn("restart.gsd"))
         job.doc.runs += 1
         print("Simulation finished.")
+
+
+@PPSSingleChain.pre(equilibrated)
+@PPSSingleChain.post(sampled)
+@PPSSingleChain.operation(
+    directives={"ngpu": 0, "executable": "python -u"},
+    name="sample"
+)
+def sample(job):
+    import numpy as np
+    import unyt
+    from unyt import Unit
+    from cmeutils.polymers import (
+            radius_of_gyration,
+            end_to_end_distance,
+            persistence_length
+    )
+    with job:
+        print("------------------------------------")
+        print("JOB ID NUMBER:")
+        print(job.id)
+        print("------------------------------------")
+        print("Sampling Radius of Gyration...")
+        print("------------------------------------")
+        gsd_path = job.fn("target_1monomer_per_bead.gsd")
+        rg_means, rg_std, rg_array = radius_of_gyration(
+                gsd_file=gsd_path,
+                start=job.doc.equil_gsd_start,
+                stop=-1,
+                stride=job.doc.equil_gsd_stride,
+        )
+        job.doc.rg_avg = np.mean(rg_means)
+        job.doc.rg_std = np.std(rg_means)
+        np.save(arr=np.array(rg_array), file=job.fn("rg_samples.npy"))
+        print("------------------------------------")
+        print("Sampling End-to-End Distance...")
+        print("------------------------------------")
+        re_means, re_std, re_array, re_vectors = end_to_end_distance(
+                gsd_file=job.fn(f"trajectory{job.doc.runs - 1}.gsd"),
+                start=job.doc.equil_gsd_start,
+                stop=-1,
+                stride=job.doc.equil_gsd_stride,
+                head_index=0,
+                tail_index=-1,
+        )
+        job.doc.re_avg = np.mean(re_means)
+        job.doc.re_std = np.std(re_means)
+        np.save(arr=np.array(re_array), file=job.fn("re_samples.npy"))
+        print("------------------------------------")
+        print("Sampling Persistence Length...")
+        print("------------------------------------")
+        lp_mean, lp_std = persistence_length(
+                gsd_file=job.fn(f"trajectory{job.doc.runs - 1}.gsd"),
+                select_atoms_arg = "name A A",
+                start=job.doc.equil_gsd_start,
+                window_size=25,
+                stop=-1
+        )
+        job.doc.lp_mean = lp_mean
+        job.doc.lp_std = lp_std
+
+        print("Finished.")
+        job.doc.sampled = True
 
 
 if __name__ == "__main__":

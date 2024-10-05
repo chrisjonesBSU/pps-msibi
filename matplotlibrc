@@ -1,0 +1,8 @@
+figure.figsize: 3, 3
+axes.labelsize: 12
+legend.fontsize: 7
+lines.markersize: 2
+lines.linestyle: -
+lines.marker: o
+lines.linewidth: 1
+figure.dpi: 1200

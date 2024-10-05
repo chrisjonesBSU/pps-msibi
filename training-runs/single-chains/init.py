@@ -63,6 +63,7 @@ def main():
         job = project.open_job(statepoint)
         job.init()
         job.doc.setdefault("equilibrated", False)
+        job.doc.setdefault("sampled", False)
         job.doc.setdefault("runs", 0)
 
 
